@@ -1,36 +1,142 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
+# Dependencies
+node_modules/
+*/node_modules/
 /.pnp
 .pnp.js
+.pnp.cjs
 
-# testing
-/coverage
+# Package manager lockfiles (keep pnpm-lock.yaml but ignore others if switching)
+# yarn.lock
+# package-lock.json
 
-# next.js
-/.next/
-/out/
+# Testing
+coverage/
+*/coverage/
+.nyc_output
+*.lcov
+test-results/
+playwright-report/
+test-results/
 
-# production
-/build
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+.next/
+out/
+.storybook-out/
+storybook-static/
 
-# misc
-.DS_Store
-*.pem
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
 
-# debug
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
-# local env files
-.env*.local
-.env
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# vercel
+# Coverage directory used by tools like istanbul
+lib-cov
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary folders
+tmp/
+temp/
+
+# Vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# Turbo
+.turbo
+
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettiercache
+
+# Stylelint cache
+.stylelintcache
+
+# Next.js cache
+.next/
+
+# Nuxt.js build / generate output
+.nuxt
+
+# Storybook
+.out
+.storybook-out
+storybook-static/
+
+# Miscellaneous
+*.tgz
+*.tar.gz
+.cache/
+.parcel-cache/
+
+# Local Netlify folder
+.netlify
+
+# Sentry Config File
+.sentryclirc
+
+# Wrangler (Cloudflare Workers)
+.wrangler/
+
+# MacOS
+.AppleDouble
+.LSOverride
+
+# Windows
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+*storybook.log
