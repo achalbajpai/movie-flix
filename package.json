@@ -1,0 +1,25 @@
+{
+  "name": "bus-booking",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd frontend && pnpm dev",
+    "build": "cd frontend && pnpm build",
+    "start": "cd frontend && pnpm start",
+    "lint": "cd frontend && pnpm lint",
+    "dev:backend": "cd backend && pnpm dev",
+    "build:backend": "cd backend && pnpm build",
+    "start:backend": "cd backend && pnpm start",
+    "dev:full": "concurrently \"cd frontend && pnpm dev\" \"cd backend && pnpm dev\"",
+    "build:full": "cd frontend && pnpm build && cd ../backend && pnpm build",
+    "lint:backend": "cd backend && pnpm lint",
+    "typecheck": "cd frontend && pnpm typecheck",
+    "typecheck:backend": "cd backend && pnpm typecheck",
+    "install:all": "cd frontend && pnpm install && cd ../backend && pnpm install"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "packageManager": "pnpm@10.12.2+sha512.a32540185b964ee30bb4e979e405adc6af59226b438ee4cc19f9e8773667a66d302f5bfee60a39d3cac69e35e4b96e708a71dd002b7e9359c4112a1722ac323f"
+}
