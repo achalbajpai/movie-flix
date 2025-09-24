@@ -89,18 +89,17 @@ export function SearchSummary() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
+  const [error, setError] = useState("")
   const [editData, setEditData] = useState({
     from: searchParams.get("source") || "",
     to: searchParams.get("destination") || "",
     date: searchParams.get("departureDate") || "",
-    returnDate: searchParams.get("returnDate") || "",
     passengers: parseInt(searchParams.get("passengers") || "1")
   })
 
   const from = searchParams.get("source") || ""
   const to = searchParams.get("destination") || ""
   const date = searchParams.get("departureDate") || ""
-  const returnDate = searchParams.get("returnDate")
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "Select Date"
@@ -114,16 +113,23 @@ export function SearchSummary() {
   }
 
   const handleModifySearch = () => {
+    setError("") 
     setIsEditing(true)
   }
 
   const handleSaveSearch = () => {
+    setError("")
+
+    if (editData.from.toLowerCase().trim() === editData.to.toLowerCase().trim()) {
+      setError("Source and destination cannot be the same")
+      return
+    }
+
     const params = new URLSearchParams({
       source: editData.from,
       destination: editData.to,
       departureDate: editData.date,
       passengers: editData.passengers.toString(),
-      ...(editData.returnDate && { returnDate: editData.returnDate }),
     })
     router.push(`/results?${params.toString()}`)
     setIsEditing(false)
@@ -134,9 +140,9 @@ export function SearchSummary() {
       from: searchParams.get("source") || "",
       to: searchParams.get("destination") || "",
       date: searchParams.get("departureDate") || "",
-      returnDate: searchParams.get("returnDate") || "",
       passengers: parseInt(searchParams.get("passengers") || "1")
     })
+    setError("") // Clear any errors
     setIsEditing(false)
   }
 
@@ -164,12 +170,6 @@ export function SearchSummary() {
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="text-foreground">{formatDate(date)}</span>
-              {returnDate && (
-                <>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="text-foreground">{formatDate(returnDate)}</span>
-                </>
-              )}
             </div>
           </div>
 
@@ -191,7 +191,10 @@ export function SearchSummary() {
             <div className="md:col-span-2">
               <CityDropdown
                 value={editData.from}
-                onChange={(value) => setEditData(prev => ({ ...prev, from: value }))}
+                onChange={(value) => {
+                  setEditData(prev => ({ ...prev, from: value }))
+                  if (error) setError("") 
+                }}
                 placeholder="From city"
               />
             </div>
@@ -210,29 +213,23 @@ export function SearchSummary() {
             <div className="md:col-span-2">
               <CityDropdown
                 value={editData.to}
-                onChange={(value) => setEditData(prev => ({ ...prev, to: value }))}
+                onChange={(value) => {
+                  setEditData(prev => ({ ...prev, to: value }))
+                  if (error) setError("") 
+                }}
                 placeholder="To city"
               />
             </div>
           </div>
 
           {/* Date and Passengers Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Input
               type="date"
               value={editData.date}
               onChange={(e) => setEditData(prev => ({ ...prev, date: e.target.value }))}
               className="h-10 text-sm"
               min={new Date().toISOString().split("T")[0]}
-            />
-
-            <Input
-              type="date"
-              value={editData.returnDate}
-              onChange={(e) => setEditData(prev => ({ ...prev, returnDate: e.target.value }))}
-              placeholder="Return date (optional)"
-              className="h-10 text-sm"
-              min={editData.date || new Date().toISOString().split("T")[0]}
             />
 
             <Input
@@ -244,6 +241,13 @@ export function SearchSummary() {
               className="h-10 text-sm"
             />
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+              <p className="text-sm text-destructive font-medium">{error}</p>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-2">

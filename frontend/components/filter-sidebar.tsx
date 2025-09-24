@@ -21,20 +21,90 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const [priceRange, setPriceRange] = useState([0, 2000])
-  const [selectedOperators, setSelectedOperators] = useState<string[]>([])
-  const [selectedBusTypes, setSelectedBusTypes] = useState<string[]>([])
-  const [selectedDepartureTime, setSelectedDepartureTime] = useState<string[]>([])
+  const [priceRange, setPriceRange] = useState(() => {
+    const minPrice = searchParams.get('priceMin')
+    const maxPrice = searchParams.get('priceMax')
+    return [
+      minPrice ? parseInt(minPrice) : 0,
+      maxPrice ? parseInt(maxPrice) : 2000
+    ]
+  })
 
-  // Update filter options when filters from API are loaded
+  const [selectedOperators, setSelectedOperators] = useState<string[]>(() => {
+    const operators = searchParams.get('operators')
+    return operators ? operators.split(',').filter(Boolean) : []
+  })
+
+  const [selectedBusTypes, setSelectedBusTypes] = useState<string[]>(() => {
+    const busTypes = searchParams.get('busTypes')
+    return busTypes ? busTypes.split(',').filter(Boolean) : []
+  })
+
+  const [selectedDepartureTime, setSelectedDepartureTime] = useState<string[]>(() => {
+    const timeSlots = searchParams.get('departureTimeSlots')
+    if (!timeSlots) return []
+
+    const slots: string[] = []
+    timeSlots.split(',').forEach(range => {
+      const [start] = range.split('-')
+      switch (start) {
+        case '06:00': slots.push('early'); break
+        case '12:00': slots.push('afternoon'); break
+        case '18:00': slots.push('evening'); break
+        case '23:00': slots.push('night'); break
+      }
+    })
+    return slots
+  })
+
   useEffect(() => {
     if (filters?.priceRange) {
-      setPriceRange([
-        Math.min(priceRange[0], filters.priceRange.min),
-        Math.max(priceRange[1], filters.priceRange.max)
-      ])
+      const currentMin = priceRange[0]
+      const currentMax = priceRange[1]
+      const apiMin = filters.priceRange.min
+      const apiMax = filters.priceRange.max
+
+      if (currentMin < apiMin || currentMax > apiMax || (currentMin === 0 && currentMax === 2000)) {
+        setPriceRange([
+          Math.max(currentMin, apiMin),
+          Math.min(currentMax, apiMax)
+        ])
+      }
     }
-  }, [filters])
+  }, [filters, priceRange])
+
+  useEffect(() => {
+    const minPrice = searchParams.get('priceMin')
+    const maxPrice = searchParams.get('priceMax')
+    const newPriceRange = [
+      minPrice ? parseInt(minPrice) : (filters?.priceRange?.min || 0),
+      maxPrice ? parseInt(maxPrice) : (filters?.priceRange?.max || 2000)
+    ]
+    setPriceRange(newPriceRange)
+
+    const operators = searchParams.get('operators')
+    setSelectedOperators(operators ? operators.split(',').filter(Boolean) : [])
+
+    const busTypes = searchParams.get('busTypes')
+    setSelectedBusTypes(busTypes ? busTypes.split(',').filter(Boolean) : [])
+
+    const timeSlots = searchParams.get('departureTimeSlots')
+    if (timeSlots) {
+      const slots: string[] = []
+      timeSlots.split(',').forEach(range => {
+        const [start] = range.split('-')
+        switch (start) {
+          case '06:00': slots.push('early'); break
+          case '12:00': slots.push('afternoon'); break
+          case '18:00': slots.push('evening'); break
+          case '23:00': slots.push('night'); break
+        }
+      })
+      setSelectedDepartureTime(slots)
+    } else {
+      setSelectedDepartureTime([])
+    }
+  }, [searchParams, filters])
 
   const operators = filters?.availableOperators?.map(op => op.name) || ["RedBus Express", "Volvo Travels", "SRS Travels", "Orange Tours", "Greenline Travels"]
   const busTypes = filters?.availableBusTypes?.map(bt => bt.name) || ["AC Sleeper", "Non-AC Sleeper", "AC Seater", "Non-AC Seater", "Volvo AC", "Multi-Axle"]
@@ -87,9 +157,6 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
       newSelected = selectedOperators.filter((op) => op !== operator)
     }
     setSelectedOperators(newSelected)
-
-    // Auto-apply filter after short delay
-    setTimeout(() => applyFilters(), 100)
   }
 
   const handleBusTypeChange = (busType: string, checked: boolean) => {
@@ -100,9 +167,6 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
       newSelected = selectedBusTypes.filter((type) => type !== busType)
     }
     setSelectedBusTypes(newSelected)
-
-    // Auto-apply filter after short delay
-    setTimeout(() => applyFilters(), 100)
   }
 
   const handleDepartureTimeChange = (slot: string, checked: boolean) => {
@@ -113,22 +177,82 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
       newSelected = selectedDepartureTime.filter((time) => time !== slot)
     }
     setSelectedDepartureTime(newSelected)
-
-    // Auto-apply filter after short delay
-    setTimeout(() => applyFilters(), 100)
   }
 
   const clearAllFilters = () => {
-    setPriceRange([0, 2000])
+    const defaultMin = filters?.priceRange?.min || 0
+    const defaultMax = filters?.priceRange?.max || 2000
+
+    setPriceRange([defaultMin, defaultMax])
     setSelectedOperators([])
     setSelectedBusTypes([])
     setSelectedDepartureTime([])
 
-    // Clear URL params and reload
     const params = new URLSearchParams(searchParams.toString())
     const keysToRemove = ['priceMin', 'priceMax', 'operators', 'busTypes', 'departureTimeSlots']
     keysToRemove.forEach(key => params.delete(key))
     router.push(`/results?${params.toString()}`)
+  }
+
+  const resetCurrentSelection = () => {
+    const minPrice = searchParams.get('priceMin')
+    const maxPrice = searchParams.get('priceMax')
+    setPriceRange([
+      minPrice ? parseInt(minPrice) : (filters?.priceRange?.min || 0),
+      maxPrice ? parseInt(maxPrice) : (filters?.priceRange?.max || 2000)
+    ])
+
+    const operators = searchParams.get('operators')
+    setSelectedOperators(operators ? operators.split(',').filter(Boolean) : [])
+
+    const busTypes = searchParams.get('busTypes')
+    setSelectedBusTypes(busTypes ? busTypes.split(',').filter(Boolean) : [])
+
+    const timeSlots = searchParams.get('departureTimeSlots')
+    if (timeSlots) {
+      const slots: string[] = []
+      timeSlots.split(',').forEach(range => {
+        const [start] = range.split('-')
+        switch (start) {
+          case '06:00': slots.push('early'); break
+          case '12:00': slots.push('afternoon'); break
+          case '18:00': slots.push('evening'); break
+          case '23:00': slots.push('night'); break
+        }
+      })
+      setSelectedDepartureTime(slots)
+    } else {
+      setSelectedDepartureTime([])
+    }
+  }
+
+  const hasUnappliedChanges = () => {
+    const currentUrlOperators = searchParams.get('operators')?.split(',').filter(Boolean) || []
+    const currentUrlBusTypes = searchParams.get('busTypes')?.split(',').filter(Boolean) || []
+    const currentUrlTimeSlots = searchParams.get('departureTimeSlots') || ''
+    const currentUrlMinPrice = parseInt(searchParams.get('priceMin') || (filters?.priceRange?.min || 0).toString())
+    const currentUrlMaxPrice = parseInt(searchParams.get('priceMax') || (filters?.priceRange?.max || 2000).toString())
+
+    const currentTimeSlots: string[] = []
+    if (currentUrlTimeSlots) {
+      currentUrlTimeSlots.split(',').forEach(range => {
+        const [start] = range.split('-')
+        switch (start) {
+          case '06:00': currentTimeSlots.push('early'); break
+          case '12:00': currentTimeSlots.push('afternoon'); break
+          case '18:00': currentTimeSlots.push('evening'); break
+          case '23:00': currentTimeSlots.push('night'); break
+        }
+      })
+    }
+
+    return (
+      JSON.stringify(selectedOperators.sort()) !== JSON.stringify(currentUrlOperators.sort()) ||
+      JSON.stringify(selectedBusTypes.sort()) !== JSON.stringify(currentUrlBusTypes.sort()) ||
+      JSON.stringify(selectedDepartureTime.sort()) !== JSON.stringify(currentTimeSlots.sort()) ||
+      priceRange[0] !== currentUrlMinPrice ||
+      priceRange[1] !== currentUrlMaxPrice
+    )
   }
 
   const activeFiltersCount = selectedOperators.length + selectedBusTypes.length + selectedDepartureTime.length
@@ -174,7 +298,6 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
           <Slider
             value={priceRange}
             onValueChange={setPriceRange}
-            onValueCommit={() => setTimeout(() => applyFilters(), 300)}
             max={filters?.priceRange?.max || 2000}
             min={filters?.priceRange?.min || 0}
             step={50}
@@ -235,7 +358,7 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
       <Separator className="my-6" />
 
       {/* Operators */}
-      <div className="space-y-4">
+      <div className="space-y-4 mb-6">
         <Label className="text-sm font-medium">Operators</Label>
         <div className="space-y-3">
           {operators.map((operator) => (
@@ -251,6 +374,32 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Apply Filters Button */}
+      <div className="pt-4 border-t border-border space-y-2">
+        <Button
+          onClick={applyFilters}
+          className="w-full"
+          size="sm"
+          variant={hasUnappliedChanges() ? "default" : "outline"}
+          disabled={!hasUnappliedChanges()}
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          {hasUnappliedChanges() ? "Apply Filters" : "No Changes"}
+        </Button>
+
+        {hasUnappliedChanges() && (
+          <Button
+            onClick={resetCurrentSelection}
+            className="w-full"
+            size="sm"
+            variant="ghost"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Reset Changes
+          </Button>
+        )}
       </div>
     </Card>
   )

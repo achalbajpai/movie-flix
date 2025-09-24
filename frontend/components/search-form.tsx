@@ -101,9 +101,9 @@ export function SearchForm() {
     from: "",
     to: "",
     date: "",
-    returnDate: "",
     passengers: 1,
   })
+  const [error, setError] = useState("")
 
   const handleSwapLocations = () => {
     setSearchData((prev) => ({
@@ -114,13 +114,18 @@ export function SearchForm() {
   }
 
   const handleSearch = () => {
-    // Navigate to results page with search parameters
+    setError("")
+
+    if (searchData.from.toLowerCase().trim() === searchData.to.toLowerCase().trim()) {
+      setError("Source and destination cannot be the same")
+      return
+    }
+
     const params = new URLSearchParams({
       source: searchData.from,
       destination: searchData.to,
       departureDate: searchData.date,
       passengers: searchData.passengers.toString(),
-      ...(searchData.returnDate && { returnDate: searchData.returnDate }),
     })
     router.push(`/results?${params.toString()}`)
   }
@@ -135,7 +140,10 @@ export function SearchForm() {
             <CityDropdown
               label="From"
               value={searchData.from}
-              onChange={(value) => setSearchData((prev) => ({ ...prev, from: value }))}
+              onChange={(value) => {
+                setSearchData((prev) => ({ ...prev, from: value }))
+                if (error) setError("") // Clear error when location changes
+              }}
               placeholder="Departure city"
             />
           </div>
@@ -156,14 +164,17 @@ export function SearchForm() {
             <CityDropdown
               label="To"
               value={searchData.to}
-              onChange={(value) => setSearchData((prev) => ({ ...prev, to: value }))}
+              onChange={(value) => {
+                setSearchData((prev) => ({ ...prev, to: value }))
+                if (error) setError("") 
+              }}
               placeholder="Destination city"
             />
           </div>
         </div>
 
         {/* Date and Passengers Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Departure Date */}
           <div className="space-y-2">
             <Label htmlFor="date" className="text-sm font-medium text-foreground">
@@ -182,23 +193,6 @@ export function SearchForm() {
             </div>
           </div>
 
-          {/* Return Date */}
-          <div className="space-y-2">
-            <Label htmlFor="returnDate" className="text-sm font-medium text-foreground">
-              Return Date (Optional)
-            </Label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="returnDate"
-                type="date"
-                value={searchData.returnDate}
-                onChange={(e) => setSearchData((prev) => ({ ...prev, returnDate: e.target.value }))}
-                className="pl-10 h-12 text-base"
-                min={searchData.date || new Date().toISOString().split("T")[0]}
-              />
-            </div>
-          </div>
 
           {/* Passengers */}
           <div className="space-y-2">
@@ -217,6 +211,13 @@ export function SearchForm() {
           </div>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mt-6 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+          <p className="text-sm text-destructive font-medium">{error}</p>
+        </div>
+      )}
 
       {/* Search Button */}
       <div className="mt-8">
