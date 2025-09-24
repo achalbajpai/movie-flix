@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { ArrowLeftRight, MapPin, Calendar, Search, ChevronDown } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCities } from "@/lib/hooks"
-import { cn } from "@/lib/utils"
 
 interface CityDropdownProps {
   label: string
