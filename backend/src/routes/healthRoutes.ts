@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import { HealthController } from '@/controllers'
+import { createHealthController } from '@/controllers'
 
-export const createHealthRoutes = (healthController: HealthController): Router => {
+export const createHealthRoutes = (healthController: ReturnType<typeof createHealthController>): Router => {
   const router = Router()
 
   // Basic health check

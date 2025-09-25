@@ -3,15 +3,15 @@ import { ICityRepository } from '../interfaces/ICityRepository'
 import { City } from '@/models'
 import { logger } from '@/config'
 
-export class SupabaseCityRepository implements ICityRepository {
-  private cityCache: Map<string, City> = new Map()
-  private cacheExpiry: Date | null = null
-  private readonly CACHE_DURATION = 60 * 60 * 1000 // 1 hour
+export const createSupabaseCityRepository = (): ICityRepository => {
+  const cityCache: Map<string, City> = new Map()
+  let cacheExpiry: Date | null = null
+  const CACHE_DURATION = 60 * 60 * 1000 // 1 hour
 
-  private async getUniqueCities(): Promise<City[]> {
+  const getUniqueCities = async (): Promise<City[]> => {
     // Check cache first
-    if (this.cacheExpiry && new Date() < this.cacheExpiry && this.cityCache.size > 0) {
-      return Array.from(this.cityCache.values())
+    if (cacheExpiry && new Date() < cacheExpiry && cityCache.size > 0) {
+      return Array.from(cityCache.values())
     }
 
     try {
@@ -38,9 +38,9 @@ export class SupabaseCityRepository implements ICityRepository {
 
       // Create City objects with mock state data (since we don't have state info in routes)
       const cities: City[] = Array.from(cityNames).map(name => ({
-        id: this.generateCityId(name),
+        id: generateCityId(name),
         name,
-        state: this.inferStateFromCityName(name), // Mock state inference
+        state: inferStateFromCityName(name), // Mock state inference
         country: 'India', // Default to India for bus booking system
         latitude: 0, // Could be populated from a geocoding service
         longitude: 0,
@@ -49,9 +49,9 @@ export class SupabaseCityRepository implements ICityRepository {
       }))
 
       // Update cache
-      this.cityCache.clear()
-      cities.forEach(city => this.cityCache.set(city.id, city))
-      this.cacheExpiry = new Date(Date.now() + this.CACHE_DURATION)
+      cityCache.clear()
+      cities.forEach(city => cityCache.set(city.id, city))
+      cacheExpiry = new Date(Date.now() + CACHE_DURATION)
 
       logger.info('Cities extracted from routes', { count: cities.length })
       return cities
@@ -61,12 +61,12 @@ export class SupabaseCityRepository implements ICityRepository {
     }
   }
 
-  private generateCityId(cityName: string): string {
+  const generateCityId = (cityName: string): string => {
     // Generate consistent ID from city name
     return cityName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
   }
 
-  private inferStateFromCityName(cityName: string): string {
+  const inferStateFromCityName = (cityName: string): string => {
     // Simple mapping of major cities to states
     const cityStateMap: Record<string, string> = {
       'mumbai': 'Maharashtra',
@@ -98,12 +98,12 @@ export class SupabaseCityRepository implements ICityRepository {
     return cityStateMap[key] || 'Unknown' // Default state for unmapped cities
   }
 
-  async findAll(): Promise<City[]> {
-    return this.getUniqueCities()
+  const findAll = async (): Promise<City[]> => {
+    return getUniqueCities()
   }
 
-  async findByQuery(query: string, limit = 10): Promise<City[]> {
-    const allCities = await this.getUniqueCities()
+  const findByQuery = async (query: string, limit = 10): Promise<City[]> => {
+    const allCities = await getUniqueCities()
     const lowerQuery = query.toLowerCase()
 
     const filtered = allCities.filter(city =>
@@ -131,17 +131,17 @@ export class SupabaseCityRepository implements ICityRepository {
     return filtered.slice(0, limit)
   }
 
-  async findById(id: string): Promise<City | null> {
-    const allCities = await this.getUniqueCities()
+  const findById = async (id: string): Promise<City | null> => {
+    const allCities = await getUniqueCities()
     return allCities.find(city => city.id === id) || null
   }
 
-  async findByIds(ids: string[]): Promise<City[]> {
-    const allCities = await this.getUniqueCities()
+  const findByIds = async (ids: string[]): Promise<City[]> => {
+    const allCities = await getUniqueCities()
     return allCities.filter(city => ids.includes(city.id))
   }
 
-  async findPopularCities(limit = 8): Promise<City[]> {
+  const findPopularCities = async (limit = 8): Promise<City[]> => {
     try {
       const { data: routeData, error } = await supabase
         .from('Routes')
@@ -149,12 +149,12 @@ export class SupabaseCityRepository implements ICityRepository {
 
       if (error) {
         logger.error('Failed to fetch routes for popular cities', { error: error.message })
-        const allCities = await this.getUniqueCities()
+        const allCities = await getUniqueCities()
         return allCities.slice(0, limit)
       }
 
       if (!routeData) {
-        const allCities = await this.getUniqueCities()
+        const allCities = await getUniqueCities()
         return allCities.slice(0, limit)
       }
 
@@ -176,7 +176,7 @@ export class SupabaseCityRepository implements ICityRepository {
         .slice(0, limit)
         .map(([cityName]) => cityName)
 
-      const allCities = await this.getUniqueCities()
+      const allCities = await getUniqueCities()
       const popularCities: City[] = []
 
       for (const cityName of sortedCities) {
@@ -204,8 +204,16 @@ export class SupabaseCityRepository implements ICityRepository {
       return popularCities
     } catch (error) {
       logger.error('Error fetching popular cities', { error: (error as Error).message })
-      const allCities = await this.getUniqueCities()
+      const allCities = await getUniqueCities()
       return allCities.slice(0, limit)
     }
+  }
+
+  return {
+    findAll,
+    findByQuery,
+    findById,
+    findByIds,
+    findPopularCities
   }
 }

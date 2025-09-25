@@ -5,11 +5,11 @@ import { supabase } from '@/config'
 import { transformBusSearchToApi } from '@/utils'
 import { logger } from '@/config'
 
-export class SupabaseBusRepository implements IBusRepository {
-  async searchBuses(query: SearchQuery): Promise<{
+export const createSupabaseBusRepository = (): IBusRepository => {
+  const searchBuses = async (query: SearchQuery): Promise<{
     buses: Bus[]
     metadata: SearchResultMetadata
-  }> {
+  }> => {
     const startTime = Date.now()
 
     try {
@@ -116,7 +116,7 @@ export class SupabaseBusRepository implements IBusRepository {
       if (data) {
         for (const row of data) {
           // Get available seats count
-          const availableSeats = await this.getAvailableSeatsCount(row.schedule_id)
+          const availableSeats = await getAvailableSeatsCount(row.schedule_id)
 
           const busSearchResult: BusSearchResult = {
             schedule_id: row.schedule_id,
@@ -157,7 +157,7 @@ export class SupabaseBusRepository implements IBusRepository {
     }
   }
 
-  async findById(id: string): Promise<Bus | null> {
+  const findById = async (id: string): Promise<Bus | null> => {
     try {
       const scheduleId = parseInt(id)
 
@@ -194,7 +194,7 @@ export class SupabaseBusRepository implements IBusRepository {
         return null
       }
 
-      const availableSeats = await this.getAvailableSeatsCount(data.schedule_id)
+      const availableSeats = await getAvailableSeatsCount(data.schedule_id)
 
       const busSearchResult: BusSearchResult = {
         schedule_id: data.schedule_id,
@@ -222,7 +222,7 @@ export class SupabaseBusRepository implements IBusRepository {
     }
   }
 
-  async findByOperator(operatorId: string): Promise<Bus[]> {
+  const findByOperator = async (operatorId: string): Promise<Bus[]> => {
     try {
       const opId = parseInt(operatorId)
 
@@ -262,7 +262,7 @@ export class SupabaseBusRepository implements IBusRepository {
 
       if (data) {
         for (const row of data) {
-          const availableSeats = await this.getAvailableSeatsCount(row.schedule_id)
+          const availableSeats = await getAvailableSeatsCount(row.schedule_id)
 
           const busSearchResult: BusSearchResult = {
             schedule_id: row.schedule_id,
@@ -294,7 +294,7 @@ export class SupabaseBusRepository implements IBusRepository {
     }
   }
 
-  async findByRoute(routeId: string): Promise<Bus[]> {
+  const findByRoute = async (routeId: string): Promise<Bus[]> => {
     try {
       const rId = parseInt(routeId)
 
@@ -334,7 +334,7 @@ export class SupabaseBusRepository implements IBusRepository {
 
       if (data) {
         for (const row of data) {
-          const availableSeats = await this.getAvailableSeatsCount(row.schedule_id)
+          const availableSeats = await getAvailableSeatsCount(row.schedule_id)
 
           const busSearchResult: BusSearchResult = {
             schedule_id: row.schedule_id,
@@ -366,7 +366,7 @@ export class SupabaseBusRepository implements IBusRepository {
     }
   }
 
-  async getSearchFilters(_query: SearchQuery): Promise<SearchFilters> {
+  const getSearchFilters = async (_query: SearchQuery): Promise<SearchFilters> => {
     try {
       // Get available operators
       const { data: operatorData, error: operatorError } = await supabase
@@ -439,7 +439,7 @@ export class SupabaseBusRepository implements IBusRepository {
     }
   }
 
-  async getTotalCount(): Promise<number> {
+  const getTotalCount = async (): Promise<number> => {
     try {
       const { count, error } = await supabase
         .from('Bus')
@@ -456,7 +456,7 @@ export class SupabaseBusRepository implements IBusRepository {
     }
   }
 
-  async getBusCountByOperator(operatorId: string): Promise<number> {
+  const getBusCountByOperator = async (operatorId: string): Promise<number> => {
     try {
       const opId = parseInt(operatorId)
 
@@ -476,7 +476,7 @@ export class SupabaseBusRepository implements IBusRepository {
     }
   }
 
-  async getOperatorStatistics(): Promise<Array<{ operatorId: string; busCount: number }>> {
+  const getOperatorStatistics = async (): Promise<Array<{ operatorId: string; busCount: number }>> => {
     try {
       const { data, error } = await supabase
         .from('Bus')
@@ -517,7 +517,7 @@ export class SupabaseBusRepository implements IBusRepository {
     }
   }
 
-  private async getAvailableSeatsCount(scheduleId: number): Promise<number> {
+  const getAvailableSeatsCount = async (scheduleId: number): Promise<number> => {
     try {
       const { data: seatsData, error: seatsError } = await supabase
         .from('Seats')
@@ -535,10 +535,21 @@ export class SupabaseBusRepository implements IBusRepository {
       return 0
     }
   }
+
+  return {
+    searchBuses,
+    findById,
+    findByOperator,
+    findByRoute,
+    getSearchFilters,
+    getTotalCount,
+    getBusCountByOperator,
+    getOperatorStatistics
+  }
 }
 
-export class SupabaseOperatorRepository implements IOperatorRepository {
-  async findAll(): Promise<Array<{ id: string; name: string; rating: number }>> {
+export const createSupabaseOperatorRepository = (): IOperatorRepository => {
+  const findAll = async (): Promise<Array<{ id: string; name: string; rating: number }>> => {
     try {
       const { data, error } = await supabase
         .from('Operator')
@@ -560,7 +571,7 @@ export class SupabaseOperatorRepository implements IOperatorRepository {
     }
   }
 
-  async findById(id: string): Promise<{ id: string; name: string; rating: number } | null> {
+  const findById = async (id: string): Promise<{ id: string; name: string; rating: number } | null> => {
     try {
       const opId = parseInt(id)
 
@@ -585,7 +596,7 @@ export class SupabaseOperatorRepository implements IOperatorRepository {
     }
   }
 
-  async findByIds(ids: string[]): Promise<Array<{ id: string; name: string; rating: number }>> {
+  const findByIds = async (ids: string[]): Promise<Array<{ id: string; name: string; rating: number }>> => {
     try {
       const opIds = ids.map(id => parseInt(id))
 
@@ -608,5 +619,11 @@ export class SupabaseOperatorRepository implements IOperatorRepository {
       logger.error('Find operators by IDs error', { error: (error as Error).message, ids })
       throw error
     }
+  }
+
+  return {
+    findAll,
+    findById,
+    findByIds
   }
 }

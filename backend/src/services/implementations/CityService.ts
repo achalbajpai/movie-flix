@@ -3,14 +3,13 @@ import { ICityRepository } from '@/repositories/interfaces'
 import { CustomError } from '@/middleware'
 import { logger } from '@/config'
 
-export class CityService implements ICityService {
-  constructor(private readonly cityRepository: ICityRepository) {}
+export const createCityService = (cityRepository: ICityRepository): ICityService => {
 
-  async getAllCities(): Promise<Array<{ id: string; name: string; state: string }>> {
+  const getAllCities = async (): Promise<Array<{ id: string; name: string; state: string }>> => {
     try {
       logger.info('Fetching all cities')
 
-      const cities = await this.cityRepository.findAll()
+      const cities = await cityRepository.findAll()
 
       // Apply business logic - sort cities by name
       const sortedCities = cities
@@ -30,7 +29,7 @@ export class CityService implements ICityService {
     }
   }
 
-  async searchCities(query: string, limit = 10): Promise<Array<{ id: string; name: string; state: string }>> {
+  const searchCities = async (query: string, limit = 10): Promise<Array<{ id: string; name: string; state: string }>> => {
     try {
       logger.info('Searching cities', { query, limit })
 
@@ -42,10 +41,10 @@ export class CityService implements ICityService {
         throw new CustomError('Search query must be at least 2 characters long', 400)
       }
 
-      const cities = await this.cityRepository.findByQuery(query, limit)
+      const cities = await cityRepository.findByQuery(query, limit)
 
       // Apply business logic - prioritize exact matches
-      const prioritizedCities = this.prioritizeExactMatches(cities, query)
+      const prioritizedCities = prioritizeExactMatches(cities, query)
 
       const result = prioritizedCities.map(city => ({
         id: city.id,
@@ -66,11 +65,11 @@ export class CityService implements ICityService {
     }
   }
 
-  async getCityById(id: string): Promise<{ id: string; name: string; state: string }> {
+  const getCityById = async (id: string): Promise<{ id: string; name: string; state: string }> => {
     try {
       logger.info('Fetching city by ID', { cityId: id })
 
-      const city = await this.cityRepository.findById(id)
+      const city = await cityRepository.findById(id)
 
       if (!city) {
         throw new CustomError(`City with ID ${id} not found`, 404)
@@ -91,11 +90,11 @@ export class CityService implements ICityService {
     }
   }
 
-  async getPopularCities(limit = 8): Promise<Array<{ id: string; name: string; state: string }>> {
+  const getPopularCities = async (limit = 8): Promise<Array<{ id: string; name: string; state: string }>> => {
     try {
       logger.info('Fetching popular cities', { limit })
 
-      const popularCities = await this.cityRepository.findPopularCities(limit)
+      const popularCities = await cityRepository.findPopularCities(limit)
 
       const result = popularCities.map(city => ({
         id: city.id,
@@ -112,10 +111,10 @@ export class CityService implements ICityService {
     }
   }
 
-  private prioritizeExactMatches(
+  const prioritizeExactMatches = (
     cities: Array<{ id: string; name: string; state: string }>,
     query: string
-  ): Array<{ id: string; name: string; state: string }> {
+  ): Array<{ id: string; name: string; state: string }> => {
     const lowerQuery = query.toLowerCase()
 
     // Sort cities by relevance:
@@ -155,5 +154,12 @@ export class CityService implements ICityService {
       // Default alphabetical sort by name
       return aName.localeCompare(bName)
     })
+  }
+
+  return {
+    getAllCities,
+    searchCities,
+    getCityById,
+    getPopularCities
   }
 }

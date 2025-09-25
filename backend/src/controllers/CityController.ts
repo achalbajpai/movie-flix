@@ -18,15 +18,13 @@ const GetCityParamsSchema = z.object({
   id: z.string().min(1, 'City ID is required')
 })
 
-export class CityController {
-  constructor(private readonly cityService: ICityService) {}
-
+export const createCityController = (cityService: ICityService) => {
   /**
    * Get all cities
    * GET /api/v1/cities
    */
-  getAllCities = asyncHandler(async (req: Request, res: Response) => {
-    const cities = await this.cityService.getAllCities()
+  const getAllCities = asyncHandler(async (req: Request, res: Response) => {
+    const cities = await cityService.getAllCities()
 
     res.json(ResponseBuilder.success(cities, 'Cities retrieved successfully'))
   })
@@ -37,17 +35,17 @@ export class CityController {
    * or
    * GET /api/v1/cities/search?query=query&limit=10
    */
-  searchCities = asyncHandler(async (req: Request, res: Response) => {
+  const searchCities = asyncHandler(async (req: Request, res: Response) => {
     const { query, limit } = SearchCitiesQuerySchema.parse(req.query)
 
     if (!query) {
       // If no query provided, return all cities with limit
-      const allCities = await this.cityService.getAllCities()
+      const allCities = await cityService.getAllCities()
       const limitedCities = allCities.slice(0, limit)
       return res.json(ResponseBuilder.success(limitedCities, 'Cities retrieved successfully'))
     }
 
-    const cities = await this.cityService.searchCities(query, limit)
+    const cities = await cityService.searchCities(query, limit)
 
     return res.json(ResponseBuilder.success(cities, `Cities matching "${query}" retrieved successfully`))
   })
@@ -56,10 +54,10 @@ export class CityController {
    * Get city by ID
    * GET /api/v1/cities/:id
    */
-  getCityById = asyncHandler(async (req: Request, res: Response) => {
+  const getCityById = asyncHandler(async (req: Request, res: Response) => {
     const { id } = GetCityParamsSchema.parse(req.params)
 
-    const city = await this.cityService.getCityById(id)
+    const city = await cityService.getCityById(id)
 
     res.json(ResponseBuilder.success(city, 'City retrieved successfully'))
   })
@@ -68,10 +66,17 @@ export class CityController {
    * Get popular cities (could be based on booking frequency, etc.)
    * GET /api/v1/cities/popular
    */
-  getPopularCities = asyncHandler(async (req: Request, res: Response) => {
+  const getPopularCities = asyncHandler(async (req: Request, res: Response) => {
     // Get popular cities based on actual route frequency
-    const popularCities = await this.cityService.getPopularCities()
+    const popularCities = await cityService.getPopularCities()
 
     res.json(ResponseBuilder.success(popularCities, 'Popular cities retrieved successfully'))
   })
+
+  return {
+    getAllCities,
+    searchCities,
+    getCityById,
+    getPopularCities
+  }
 }

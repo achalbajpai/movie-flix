@@ -3,12 +3,12 @@ import { ResponseBuilder } from '@/utils'
 import { asyncHandler } from '@/middleware'
 import { env } from '@/config'
 
-export class HealthController {
+export const createHealthController = () => {
   /**
    * Health check endpoint
    * GET /api/v1/health
    */
-  healthCheck = asyncHandler(async (req: Request, res: Response) => {
+  const healthCheck = asyncHandler(async (req: Request, res: Response) => {
     const healthData = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -30,7 +30,7 @@ export class HealthController {
    * Readiness check endpoint
    * GET /api/v1/health/ready
    */
-  readinessCheck = asyncHandler(async (req: Request, res: Response) => {
+  const readinessCheck = asyncHandler(async (req: Request, res: Response) => {
     // In a real application, you'd check:
     // - Database connection
     // - External service availability
@@ -61,7 +61,7 @@ export class HealthController {
    * Liveness check endpoint
    * GET /api/v1/health/live
    */
-  livenessCheck = asyncHandler(async (req: Request, res: Response) => {
+  const livenessCheck = asyncHandler(async (req: Request, res: Response) => {
     // Simple liveness check - if we can respond, we're alive
     const livenessData = {
       status: 'alive',
@@ -71,4 +71,10 @@ export class HealthController {
 
     res.json(ResponseBuilder.success(livenessData, 'System is alive'))
   })
+
+  return {
+    healthCheck,
+    readinessCheck,
+    livenessCheck
+  }
 }

@@ -1,8 +1,8 @@
 import { Router } from 'express'
-import { BusController } from '@/controllers'
+import { createBusController } from '@/controllers'
 import { sanitizeRequest } from '@/middleware'
 
-export const createBusRoutes = (busController: BusController): Router => {
+export const createBusRoutes = (busController: ReturnType<typeof createBusController>): Router => {
   const router = Router()
 
   // Apply sanitization middleware to all routes

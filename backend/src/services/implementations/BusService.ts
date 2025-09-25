@@ -4,24 +4,23 @@ import { Bus, SearchQuery, BusEntity } from '@/models'
 import { CustomError } from '@/middleware'
 import { logger } from '@/config'
 
-export class BusService implements IBusService {
-  constructor(private readonly busRepository: IBusRepository) {}
+export const createBusService = (busRepository: IBusRepository): IBusService => {
 
-  async searchBuses(query: SearchQuery): Promise<BusSearchResult> {
+  const searchBuses = async (query: SearchQuery): Promise<BusSearchResult> => {
     try {
       logger.info('Searching buses', { query })
 
       // Validate search dates
-      this.validateSearchDates(query.searchParams.departureDate, query.searchParams.returnDate)
+      validateSearchDates(query.searchParams.departureDate, query.searchParams.returnDate)
 
       // Perform search
-      const { buses, metadata } = await this.busRepository.searchBuses(query)
+      const { buses, metadata } = await busRepository.searchBuses(query)
 
       // Get available filters for the search
-      const filters = await this.busRepository.getSearchFilters(query)
+      const filters = await busRepository.getSearchFilters(query)
 
       // Apply business logic transformations
-      const transformedBuses = buses.map(bus => this.enrichBusData(bus))
+      const transformedBuses = buses.map(bus => enrichBusData(bus))
 
       logger.info('Bus search completed', {
         totalFound: metadata.totalCount,
@@ -42,57 +41,57 @@ export class BusService implements IBusService {
     }
   }
 
-  async getBusById(id: string): Promise<Bus> {
+  const getBusById = async (id: string): Promise<Bus> => {
     try {
       logger.info('Fetching bus by ID', { busId: id })
 
-      const bus = await this.busRepository.findById(id)
+      const bus = await busRepository.findById(id)
 
       if (!bus) {
         throw new CustomError(`Bus with ID ${id} not found`, 404)
       }
 
-      return this.enrichBusData(bus)
+      return enrichBusData(bus)
     } catch (error) {
       logger.error('Error fetching bus by ID', { error: (error as Error).message, busId: id })
       throw error
     }
   }
 
-  async getBusesByOperator(operatorId: string): Promise<Bus[]> {
+  const getBusesByOperator = async (operatorId: string): Promise<Bus[]> => {
     try {
       logger.info('Fetching buses by operator', { operatorId })
 
-      const buses = await this.busRepository.findByOperator(operatorId)
-      return buses.map(bus => this.enrichBusData(bus))
+      const buses = await busRepository.findByOperator(operatorId)
+      return buses.map(bus => enrichBusData(bus))
     } catch (error) {
       logger.error('Error fetching buses by operator', { error: (error as Error).message, operatorId })
       throw error
     }
   }
 
-  async getBusesByRoute(routeId: string): Promise<Bus[]> {
+  const getBusesByRoute = async (routeId: string): Promise<Bus[]> => {
     try {
       logger.info('Fetching buses by route', { routeId })
 
-      const buses = await this.busRepository.findByRoute(routeId)
-      return buses.map(bus => this.enrichBusData(bus))
+      const buses = await busRepository.findByRoute(routeId)
+      return buses.map(bus => enrichBusData(bus))
     } catch (error) {
       logger.error('Error fetching buses by route', { error: (error as Error).message, routeId })
       throw error
     }
   }
 
-  async getBusStatistics(): Promise<{
+  const getBusStatistics = async (): Promise<{
     totalBuses: number
     operatorStats: Array<{ operatorId: string; busCount: number }>
-  }> {
+  }> => {
     try {
       logger.info('Fetching bus statistics')
 
-      const totalBuses = await this.busRepository.getTotalCount()
+      const totalBuses = await busRepository.getTotalCount()
 
-      const operatorStats = await this.busRepository.getOperatorStatistics()
+      const operatorStats = await busRepository.getOperatorStatistics()
 
       return {
         totalBuses,
@@ -104,7 +103,7 @@ export class BusService implements IBusService {
     }
   }
 
-  private validateSearchDates(departureDate: string, returnDate?: string): void {
+  const validateSearchDates = (departureDate: string, returnDate?: string): void => {
     const departure = new Date(departureDate)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -121,7 +120,7 @@ export class BusService implements IBusService {
     }
   }
 
-  private enrichBusData(bus: Bus): Bus {
+  const enrichBusData = (bus: Bus): Bus => {
     // Create business entity to access domain methods
     const busEntity = new BusEntity(
       bus.id,
@@ -151,7 +150,7 @@ export class BusService implements IBusService {
     return enrichedBus
   }
 
-  private applyBusinessRules(buses: Bus[]): Bus[] {
+  const applyBusinessRules = (buses: Bus[]): Bus[] => {
     return buses
       .filter(bus => {
         // Business rule: Only show buses with at least 1 available seat
@@ -167,5 +166,13 @@ export class BusService implements IBusService {
           // fillingFast: occupancyPercentage > 80
         }
       })
+  }
+
+  return {
+    searchBuses,
+    getBusById,
+    getBusesByOperator,
+    getBusesByRoute,
+    getBusStatistics
   }
 }

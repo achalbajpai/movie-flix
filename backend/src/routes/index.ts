@@ -2,12 +2,12 @@ import { Router } from 'express'
 import { createBusRoutes } from './busRoutes'
 import { createCityRoutes } from './cityRoutes'
 import { createHealthRoutes } from './healthRoutes'
-import { BusController, CityController, HealthController } from '@/controllers'
+import { createBusController, createCityController, createHealthController } from '@/controllers'
 
 export interface RouteControllers {
-  busController: BusController
-  cityController: CityController
-  healthController: HealthController
+  busController: ReturnType<typeof createBusController>
+  cityController: ReturnType<typeof createCityController>
+  healthController: ReturnType<typeof createHealthController>
 }
 
 export const createApiRoutes = (controllers: RouteControllers): Router => {

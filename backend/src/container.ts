@@ -1,21 +1,21 @@
 import {
-  SupabaseBusRepository,
-  SupabaseCityRepository,
+  createSupabaseBusRepository,
+  createSupabaseCityRepository,
   IBusRepository,
   ICityRepository
 } from '@/repositories'
 
 import {
-  BusService,
-  CityService,
+  createBusService,
+  createCityService,
   IBusService,
   ICityService
 } from '@/services'
 
 import {
-  BusController,
-  CityController,
-  HealthController
+  createBusController,
+  createCityController,
+  createHealthController
 } from '@/controllers'
 
 // Container interface for type safety
@@ -29,24 +29,24 @@ export interface Container {
   cityService: ICityService
 
   // Controllers
-  busController: BusController
-  cityController: CityController
-  healthController: HealthController
+  busController: ReturnType<typeof createBusController>
+  cityController: ReturnType<typeof createCityController>
+  healthController: ReturnType<typeof createHealthController>
 }
 
 export const createContainer = (): Container => {
   // Repository instances (Data Layer) - Using Supabase for all environments
-  const busRepository = new SupabaseBusRepository()
-  const cityRepository = new SupabaseCityRepository()
+  const busRepository = createSupabaseBusRepository()
+  const cityRepository = createSupabaseCityRepository()
 
   // Service instances (Business Logic Layer) - Depend on repositories
-  const busService = new BusService(busRepository)
-  const cityService = new CityService(cityRepository)
+  const busService = createBusService(busRepository)
+  const cityService = createCityService(cityRepository)
 
   // Controller instances (Presentation Layer) - Depend on services
-  const busController = new BusController(busService)
-  const cityController = new CityController(cityService)
-  const healthController = new HealthController()
+  const busController = createBusController(busService)
+  const cityController = createCityController(cityService)
+  const healthController = createHealthController()
 
   return {
     // Repositories

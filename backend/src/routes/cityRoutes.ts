@@ -1,8 +1,8 @@
 import { Router } from 'express'
-import { CityController } from '@/controllers'
+import { createCityController } from '@/controllers'
 import { sanitizeRequest } from '@/middleware'
 
-export const createCityRoutes = (cityController: CityController): Router => {
+export const createCityRoutes = (cityController: ReturnType<typeof createCityController>): Router => {
   const router = Router()
 
   // Apply sanitization middleware to all routes

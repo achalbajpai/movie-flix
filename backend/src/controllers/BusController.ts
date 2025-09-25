@@ -36,14 +36,12 @@ const GetBusParamsSchema = z.object({
   id: z.string().min(1, 'Bus ID is required')
 })
 
-export class BusController {
-  constructor(private readonly busService: IBusService) {}
-
+export const createBusController = (busService: IBusService) => {
   /**
    * Search buses based on criteria
    * GET /api/v1/buses/search
    */
-  searchBuses = asyncHandler(async (req: Request, res: Response) => {
+  const searchBuses = asyncHandler(async (req: Request, res: Response) => {
     // Validate and parse query parameters
     const validatedQuery = SearchBusesQuerySchema.parse(req.query)
 
@@ -56,8 +54,8 @@ export class BusController {
         returnDate: validatedQuery.returnDate,
         passengers: validatedQuery.passengers
       },
-      filters: this.buildFilterParams(validatedQuery),
-      sort: this.buildSortOption(validatedQuery),
+      filters: buildFilterParams(validatedQuery),
+      sort: buildSortOption(validatedQuery),
       pagination: {
         page: validatedQuery.page,
         limit: validatedQuery.limit
@@ -65,7 +63,7 @@ export class BusController {
     }
 
     // Execute search
-    const result = await this.busService.searchBuses(searchQuery)
+    const result = await busService.searchBuses(searchQuery)
 
     // Build paginated response
     const response = ResponseBuilder.paginated(
@@ -93,10 +91,10 @@ export class BusController {
    * Get bus by ID
    * GET /api/v1/buses/:id
    */
-  getBusById = asyncHandler(async (req: Request, res: Response) => {
+  const getBusById = asyncHandler(async (req: Request, res: Response) => {
     const { id } = GetBusParamsSchema.parse(req.params)
 
-    const bus = await this.busService.getBusById(id)
+    const bus = await busService.getBusById(id)
 
     res.json(ResponseBuilder.success(bus, 'Bus retrieved successfully'))
   })
@@ -105,12 +103,12 @@ export class BusController {
    * Get buses by operator
    * GET /api/v1/buses/operator/:operatorId
    */
-  getBusesByOperator = asyncHandler(async (req: Request, res: Response) => {
+  const getBusesByOperator = asyncHandler(async (req: Request, res: Response) => {
     const { operatorId } = z.object({
       operatorId: z.string().min(1, 'Operator ID is required')
     }).parse(req.params)
 
-    const buses = await this.busService.getBusesByOperator(operatorId)
+    const buses = await busService.getBusesByOperator(operatorId)
 
     res.json(ResponseBuilder.success(buses, 'Buses retrieved successfully'))
   })
@@ -119,12 +117,12 @@ export class BusController {
    * Get buses by route
    * GET /api/v1/buses/route/:routeId
    */
-  getBusesByRoute = asyncHandler(async (req: Request, res: Response) => {
+  const getBusesByRoute = asyncHandler(async (req: Request, res: Response) => {
     const { routeId } = z.object({
       routeId: z.string().min(1, 'Route ID is required')
     }).parse(req.params)
 
-    const buses = await this.busService.getBusesByRoute(routeId)
+    const buses = await busService.getBusesByRoute(routeId)
 
     res.json(ResponseBuilder.success(buses, 'Buses retrieved successfully'))
   })
@@ -133,13 +131,13 @@ export class BusController {
    * Get bus statistics
    * GET /api/v1/buses/stats
    */
-  getBusStatistics = asyncHandler(async (req: Request, res: Response) => {
-    const stats = await this.busService.getBusStatistics()
+  const getBusStatistics = asyncHandler(async (req: Request, res: Response) => {
+    const stats = await busService.getBusStatistics()
 
     res.json(ResponseBuilder.success(stats, 'Bus statistics retrieved successfully'))
   })
 
-  private buildFilterParams(query: z.infer<typeof SearchBusesQuerySchema>) {
+  const buildFilterParams = (query: z.infer<typeof SearchBusesQuerySchema>) => {
     const filters: any = {}
 
     // Price range
@@ -181,7 +179,7 @@ export class BusController {
     return Object.keys(filters).length > 0 ? filters : undefined
   }
 
-  private buildSortOption(query: z.infer<typeof SearchBusesQuerySchema>) {
+  const buildSortOption = (query: z.infer<typeof SearchBusesQuerySchema>) => {
     if (query.sortBy) {
       return {
         field: query.sortBy,
@@ -189,5 +187,13 @@ export class BusController {
       }
     }
     return undefined
+  }
+
+  return {
+    searchBuses,
+    getBusById,
+    getBusesByOperator,
+    getBusesByRoute,
+    getBusStatistics
   }
 }
