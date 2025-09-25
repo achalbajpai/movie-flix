@@ -1,32 +1,68 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { Slider } from '../../components/ui/slider'
-import { Label } from '../../components/ui/label'
-import { useState } from 'react'
+import type { Meta, StoryObj } from "@storybook/react";
+import { useState } from "react";
+import { Slider } from "../../components/ui/slider";
+import { Label } from "../../components/ui/label";
 
 const meta = {
-  title: 'UI/Slider',
+  title: "Components/UI/Slider",
   component: Slider,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
+    docs: {
+      description: {
+        component: "An input where the user selects a value from within a given range.",
+      },
+    },
   },
-  tags: ['autodocs'],
-} satisfies Meta<typeof Slider>
+  argTypes: {
+    defaultValue: {
+      description: "The value of the slider when initially rendered.",
+      control: { type: "object" },
+    },
+    min: {
+      description: "The minimum value for the range.",
+      control: { type: "number" },
+    },
+    max: {
+      description: "The maximum value for the range.",
+      control: { type: "number" },
+    },
+    step: {
+      description: "The stepping interval.",
+      control: { type: "number" },
+    },
+    disabled: {
+      description: "When true, prevents the user from interacting with the slider.",
+      control: { type: "boolean" },
+    },
+  },
+  tags: ["autodocs"],
+} satisfies Meta<typeof Slider>;
 
-export default meta
-type Story = StoryObj<typeof meta>
+export default meta;
+type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
+export const Playground: Story = {
   args: {
     defaultValue: [50],
+    min: 0,
     max: 100,
     step: 1,
-    className: 'w-60',
   },
-}
+  render: (args) => (
+    <div className="w-80 space-y-4">
+      <Label className="text-sm font-medium">Volume</Label>
+      <Slider {...args} />
+      <div className="text-sm text-muted-foreground">
+        Adjust the volume level
+      </div>
+    </div>
+  ),
+};
 
-export const PriceRange: Story = {
+export const RangeSlider: Story = {
   render: () => {
-    const [priceRange, setPriceRange] = useState([500, 2000])
+    const [priceRange, setPriceRange] = useState([200, 800]);
 
     return (
       <div className="w-80 space-y-4">
@@ -41,22 +77,22 @@ export const PriceRange: Story = {
           value={priceRange}
           onValueChange={setPriceRange}
           min={200}
-          max={5000}
-          step={100}
+          max={1000}
+          step={50}
           className="w-full"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>₹200</span>
-          <span>₹5000</span>
+          <span>₹1000</span>
         </div>
       </div>
-    )
+    );
   },
-}
+};
 
-export const RatingFilter: Story = {
+export const SingleValue: Story = {
   render: () => {
-    const [rating, setRating] = useState([3.5])
+    const [rating, setRating] = useState([3]);
 
     return (
       <div className="w-80 space-y-4">
@@ -79,20 +115,20 @@ export const RatingFilter: Story = {
           <span>5.0</span>
         </div>
       </div>
-    )
+    );
   },
-}
+};
 
 export const TravelTimeRange: Story = {
   render: () => {
-    const [timeRange, setTimeRange] = useState([6, 22])
+    const [timeRange, setTimeRange] = useState([6, 22]);
 
     const formatTime = (hour: number) => {
-      if (hour === 0) return '12:00 AM'
-      if (hour < 12) return `${hour}:00 AM`
-      if (hour === 12) return '12:00 PM'
-      return `${hour - 12}:00 PM`
-    }
+      if (hour === 0) return "12:00 AM";
+      if (hour < 12) return `${hour}:00 AM`;
+      if (hour === 12) return "12:00 PM";
+      return `${hour - 12}:00 PM`;
+    };
 
     return (
       <div className="w-80 space-y-4">
@@ -116,13 +152,13 @@ export const TravelTimeRange: Story = {
           <span>11:00 PM</span>
         </div>
       </div>
-    )
+    );
   },
-}
+};
 
 export const JourneyDuration: Story = {
   render: () => {
-    const [duration, setDuration] = useState([12])
+    const [duration, setDuration] = useState([12]);
 
     return (
       <div className="w-80 space-y-4">
@@ -145,22 +181,22 @@ export const JourneyDuration: Story = {
           <span>24h</span>
         </div>
       </div>
-    )
+    );
   },
-}
+};
 
 export const FilterSliders: Story = {
   render: () => {
-    const [priceRange, setPriceRange] = useState([500, 2000])
-    const [rating, setRating] = useState([3.5])
-    const [timeRange, setTimeRange] = useState([6, 22])
+    const [priceRange, setPriceRange] = useState([500, 2000]);
+    const [rating, setRating] = useState([3.5]);
+    const [timeRange, setTimeRange] = useState([6, 22]);
 
     const formatTime = (hour: number) => {
-      if (hour === 0) return '12:00 AM'
-      if (hour < 12) return `${hour}:00 AM`
-      if (hour === 12) return '12:00 PM'
-      return `${hour - 12}:00 PM`
-    }
+      if (hour === 0) return "12:00 AM";
+      if (hour < 12) return `${hour}:00 AM`;
+      if (hour === 12) return "12:00 PM";
+      return `${hour - 12}:00 PM`;
+    };
 
     return (
       <div className="w-80 space-y-8 p-4 border rounded-lg">
@@ -219,6 +255,6 @@ export const FilterSliders: Story = {
           />
         </div>
       </div>
-    )
+    );
   },
-}
+};

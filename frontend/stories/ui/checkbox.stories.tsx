@@ -1,152 +1,96 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { Checkbox } from '../../components/ui/checkbox'
-import { Label } from '../../components/ui/label'
+import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Label } from '../../components/ui/label';
 
 const meta = {
-  title: 'UI/Checkbox',
+  title: 'Components/UI/Checkbox',
   component: Checkbox,
   parameters: {
     layout: 'centered',
+    docs: {
+      description: {
+        component: 'A control that allows the user to toggle between checked and not checked.',
+      },
+    },
   },
   tags: ['autodocs'],
   argTypes: {
-    disabled: {
-      control: 'boolean',
-    },
     checked: {
       control: 'boolean',
+      description: 'The controlled checked state of the checkbox',
+    },
+    defaultChecked: {
+      control: 'boolean',
+      description: 'The default checked state when uncontrolled',
+    },
+    disabled: {
+      control: 'boolean',
+      description: 'When true, prevents the user from interacting with the checkbox',
     },
   },
 } satisfies Meta<typeof Checkbox>
 
-export default meta
-type Story = StoryObj<typeof meta>
+export default meta;
+type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  args: {},
-}
-
-export const WithLabel: Story = {
-  render: () => (
+// Playground
+export const Playground: Story = {
+  args: {
+    defaultChecked: false,
+  },
+  render: (args) => (
     <div className="flex items-center space-x-2">
-      <Checkbox id="terms" />
-      <Label htmlFor="terms">Accept terms and conditions</Label>
+      <Checkbox id="playground" {...args} />
+      <Label htmlFor="playground">Accept terms and conditions</Label>
     </div>
   ),
-}
+};
 
-export const Checked: Story = {
+// States
+export const States: Story = {
   render: () => (
-    <div className="flex items-center space-x-2">
-      <Checkbox id="checked" defaultChecked />
-      <Label htmlFor="checked">This option is checked</Label>
-    </div>
-  ),
-}
-
-export const Disabled: Story = {
-  render: () => (
-    <div className="space-y-3">
+    <div className="grid gap-4">
+      <div className="flex items-center space-x-2">
+        <Checkbox id="unchecked" />
+        <Label htmlFor="unchecked">Unchecked</Label>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Checkbox id="checked" defaultChecked />
+        <Label htmlFor="checked">Checked</Label>
+      </div>
+      
       <div className="flex items-center space-x-2">
         <Checkbox id="disabled" disabled />
-        <Label htmlFor="disabled">Disabled unchecked</Label>
+        <Label htmlFor="disabled">Disabled</Label>
       </div>
+      
       <div className="flex items-center space-x-2">
         <Checkbox id="disabled-checked" disabled defaultChecked />
-        <Label htmlFor="disabled-checked">Disabled checked</Label>
+        <Label htmlFor="disabled-checked">Disabled & Checked</Label>
       </div>
     </div>
   ),
-}
+};
 
-export const FilterCheckboxes: Story = {
+// With Labels
+export const WithLabels: Story = {
   render: () => (
-    <div className="w-64 space-y-4">
-      <div>
-        <h3 className="font-medium mb-3">Departure Time</h3>
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox id="morning" />
-            <Label htmlFor="morning">Morning (6AM - 12PM)</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="afternoon" />
-            <Label htmlFor="afternoon">Afternoon (12PM - 6PM)</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="evening" />
-            <Label htmlFor="evening">Evening (6PM - 12AM)</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="night" />
-            <Label htmlFor="night">Night (12AM - 6AM)</Label>
-          </div>
-        </div>
+    <div className="grid gap-4">
+      <div className="flex items-center space-x-2">
+        <Checkbox id="terms" />
+        <Label htmlFor="terms">Accept terms and conditions</Label>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Checkbox id="marketing" />
+        <Label htmlFor="marketing">Send me marketing emails</Label>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <Checkbox id="newsletter" defaultChecked />
+        <Label htmlFor="newsletter">Subscribe to newsletter</Label>
       </div>
     </div>
   ),
-}
-
-export const BusTypeFilters: Story = {
-  render: () => (
-    <div className="w-64 space-y-4">
-      <div>
-        <h3 className="font-medium mb-3">Bus Type</h3>
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox id="ac" />
-            <Label htmlFor="ac">AC</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="non-ac" />
-            <Label htmlFor="non-ac">Non-AC</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="sleeper" />
-            <Label htmlFor="sleeper">Sleeper</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="semi-sleeper" />
-            <Label htmlFor="semi-sleeper">Semi Sleeper</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="seater" />
-            <Label htmlFor="seater">Seater</Label>
-          </div>
-        </div>
-      </div>
-    </div>
-  ),
-}
-
-export const OperatorFilters: Story = {
-  render: () => (
-    <div className="w-64 space-y-4">
-      <div>
-        <h3 className="font-medium mb-3">Operators</h3>
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox id="redbus" defaultChecked />
-            <Label htmlFor="redbus">RedBus Travels</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="volvo" />
-            <Label htmlFor="volvo">Volvo</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="patel" />
-            <Label htmlFor="patel">Patel Tours</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="srs" />
-            <Label htmlFor="srs">SRS Travels</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="orange" />
-            <Label htmlFor="orange">Orange Tours</Label>
-          </div>
-        </div>
-      </div>
-    </div>
-  ),
-}
+};
