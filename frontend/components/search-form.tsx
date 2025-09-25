@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeftRight, MapPin, Calendar, Search, ChevronDown } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCities } from "@/lib/hooks"
@@ -199,15 +200,20 @@ export function SearchForm() {
             <Label htmlFor="passengers" className="text-sm font-medium text-foreground">
               Passengers
             </Label>
-            <Input
-              id="passengers"
-              type="number"
-              min="1"
-              max="10"
-              value={searchData.passengers}
-              onChange={(e) => setSearchData((prev) => ({ ...prev, passengers: parseInt(e.target.value) || 1 }))}
-              className="h-12 text-base"
-            />
+            <Select
+              value={searchData.passengers.toString()}
+              onValueChange={(value) => setSearchData((prev) => ({ ...prev, passengers: parseInt(value) }))}
+            >
+              <SelectTrigger className="h-12 text-base">
+                <SelectValue placeholder="Select passengers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Passenger</SelectItem>
+                <SelectItem value="2">2 Passengers</SelectItem>
+                <SelectItem value="3">3 Passengers</SelectItem>
+                <SelectItem value="4">4 Passengers</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

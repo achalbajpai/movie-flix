@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeftRight, Calendar, MapPin, Edit, Search, X } from "lucide-react"
 import { useCities } from "@/lib/hooks"
 
@@ -232,14 +233,20 @@ export function SearchSummary() {
               min={new Date().toISOString().split("T")[0]}
             />
 
-            <Input
-              type="number"
-              min="1"
-              max="10"
-              value={editData.passengers}
-              onChange={(e) => setEditData(prev => ({ ...prev, passengers: parseInt(e.target.value) || 1 }))}
-              className="h-10 text-sm"
-            />
+            <Select
+              value={editData.passengers.toString()}
+              onValueChange={(value) => setEditData(prev => ({ ...prev, passengers: parseInt(value) }))}
+            >
+              <SelectTrigger className="h-10 text-sm">
+                <SelectValue placeholder="Select passengers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Passenger</SelectItem>
+                <SelectItem value="2">2 Passengers</SelectItem>
+                <SelectItem value="3">3 Passengers</SelectItem>
+                <SelectItem value="4">4 Passengers</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Error Message */}
