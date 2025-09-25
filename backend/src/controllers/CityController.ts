@@ -2,21 +2,7 @@ import { Request, Response } from 'express'
 import { ICityService } from '@/services/interfaces'
 import { ResponseBuilder } from '@/utils'
 import { asyncHandler } from '@/middleware'
-import { z } from 'zod'
-
-// Request schemas
-const SearchCitiesQuerySchema = z.object({
-  q: z.string().min(2, 'Query must be at least 2 characters long').optional(),
-  query: z.string().min(2, 'Query must be at least 2 characters long').optional(),
-  limit: z.string().transform(Number).pipe(z.number().min(1).max(50)).default('10')
-}).transform(data => ({
-  query: data.q || data.query || '',
-  limit: data.limit
-}))
-
-const GetCityParamsSchema = z.object({
-  id: z.string().min(1, 'City ID is required')
-})
+import { validate } from '@/validation'
 
 export const createCityController = (cityService: ICityService) => {
   /**
@@ -36,7 +22,11 @@ export const createCityController = (cityService: ICityService) => {
    * GET /api/v1/cities/search?query=query&limit=10
    */
   const searchCities = asyncHandler(async (req: Request, res: Response) => {
-    const { query, limit } = SearchCitiesQuerySchema.parse(req.query)
+    const validationResult = validate.citySearchQuery(req.query)
+    if (!validationResult.success || !validationResult.data) {
+      throw new Error('Invalid city search parameters')
+    }
+    const { query, limit } = validationResult.data as any
 
     if (!query) {
       // If no query provided, return all cities with limit
@@ -55,7 +45,11 @@ export const createCityController = (cityService: ICityService) => {
    * GET /api/v1/cities/:id
    */
   const getCityById = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = GetCityParamsSchema.parse(req.params)
+    const validationResult = validate.cityId(req.params)
+    if (!validationResult.success || !validationResult.data) {
+      throw new Error('Invalid city ID parameter')
+    }
+    const { id } = validationResult.data as any
 
     const city = await cityService.getCityById(id)
 
@@ -67,8 +61,12 @@ export const createCityController = (cityService: ICityService) => {
    * GET /api/v1/cities/popular
    */
   const getPopularCities = asyncHandler(async (req: Request, res: Response) => {
+    // Validate query parameters (optional limit)
+    const validationResult = validate.popularCitiesQuery(req.query || {})
+    const limit = validationResult.success && validationResult.data ? (validationResult.data as any).limit : 8
+
     // Get popular cities based on actual route frequency
-    const popularCities = await cityService.getPopularCities()
+    const popularCities = await cityService.getPopularCities(limit)
 
     res.json(ResponseBuilder.success(popularCities, 'Popular cities retrieved successfully'))
   })

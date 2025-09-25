@@ -1,40 +1,8 @@
 import { Request, Response } from 'express'
 import { IBusService } from '@/services/interfaces'
-import { ResponseBuilder, ApiErrorBuilder } from '@/utils'
+import { ResponseBuilder } from '@/utils'
 import { asyncHandler } from '@/middleware'
-import { SearchParamsSchema, FilterParamsSchema, SortOptionSchema, PaginationParamsSchema } from '@/models'
-import { z } from 'zod'
-
-// Request/Response schemas
-const SearchBusesQuerySchema = z.object({
-  source: SearchParamsSchema.shape.source,
-  destination: SearchParamsSchema.shape.destination,
-  departureDate: SearchParamsSchema.shape.departureDate,
-  returnDate: SearchParamsSchema.shape.returnDate.optional(),
-  passengers: z.string().transform(Number).pipe(SearchParamsSchema.shape.passengers),
-
-  // Filters
-  priceMin: z.string().transform(Number).optional(),
-  priceMax: z.string().transform(Number).optional(),
-  operators: z.string().optional().transform(str => str ? str.split(',') : undefined),
-  busTypes: z.string().optional().transform(str => str ? str.split(',') : undefined),
-  departureTimeStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
-  departureTimeEnd: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
-  amenities: z.string().optional().transform(str => str ? str.split(',') : undefined),
-  rating: z.string().transform(Number).pipe(z.number().min(0).max(5)).optional(),
-
-  // Sorting
-  sortBy: z.enum(['price', 'duration', 'rating', 'departure', 'arrival']).optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
-
-  // Pagination
-  page: z.string().transform(Number).pipe(z.number().min(1)).default('1'),
-  limit: z.string().transform(Number).pipe(z.number().min(1).max(100)).default('20')
-})
-
-const GetBusParamsSchema = z.object({
-  id: z.string().min(1, 'Bus ID is required')
-})
+import { validate } from '@/validation'
 
 export const createBusController = (busService: IBusService) => {
   /**
@@ -42,8 +10,12 @@ export const createBusController = (busService: IBusService) => {
    * GET /api/v1/buses/search
    */
   const searchBuses = asyncHandler(async (req: Request, res: Response) => {
-    // Validate and parse query parameters
-    const validatedQuery = SearchBusesQuerySchema.parse(req.query)
+    // Validate and parse query parameters using validation factory
+    const validationResult = validate.busSearchQuery(req.query)
+    if (!validationResult.success || !validationResult.data) {
+      throw new Error('Invalid query parameters')
+    }
+    const validatedQuery = validationResult.data as any
 
     // Transform to service format
     const searchQuery = {
@@ -92,7 +64,11 @@ export const createBusController = (busService: IBusService) => {
    * GET /api/v1/buses/:id
    */
   const getBusById = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = GetBusParamsSchema.parse(req.params)
+    const validationResult = validate.busId(req.params)
+    if (!validationResult.success || !validationResult.data) {
+      throw new Error('Invalid bus ID parameter')
+    }
+    const { id } = validationResult.data as any
 
     const bus = await busService.getBusById(id)
 
@@ -104,9 +80,11 @@ export const createBusController = (busService: IBusService) => {
    * GET /api/v1/buses/operator/:operatorId
    */
   const getBusesByOperator = asyncHandler(async (req: Request, res: Response) => {
-    const { operatorId } = z.object({
-      operatorId: z.string().min(1, 'Operator ID is required')
-    }).parse(req.params)
+    const validationResult = validate.operatorId(req.params)
+    if (!validationResult.success || !validationResult.data) {
+      throw new Error('Invalid operator ID parameter')
+    }
+    const { operatorId } = validationResult.data as any
 
     const buses = await busService.getBusesByOperator(operatorId)
 
@@ -118,9 +96,11 @@ export const createBusController = (busService: IBusService) => {
    * GET /api/v1/buses/route/:routeId
    */
   const getBusesByRoute = asyncHandler(async (req: Request, res: Response) => {
-    const { routeId } = z.object({
-      routeId: z.string().min(1, 'Route ID is required')
-    }).parse(req.params)
+    const validationResult = validate.routeId(req.params)
+    if (!validationResult.success || !validationResult.data) {
+      throw new Error('Invalid route ID parameter')
+    }
+    const { routeId } = validationResult.data as any
 
     const buses = await busService.getBusesByRoute(routeId)
 
@@ -137,7 +117,7 @@ export const createBusController = (busService: IBusService) => {
     res.json(ResponseBuilder.success(stats, 'Bus statistics retrieved successfully'))
   })
 
-  const buildFilterParams = (query: z.infer<typeof SearchBusesQuerySchema>) => {
+  const buildFilterParams = (query: any) => {
     const filters: any = {}
 
     // Price range
@@ -179,7 +159,7 @@ export const createBusController = (busService: IBusService) => {
     return Object.keys(filters).length > 0 ? filters : undefined
   }
 
-  const buildSortOption = (query: z.infer<typeof SearchBusesQuerySchema>) => {
+  const buildSortOption = (query: any) => {
     if (query.sortBy) {
       return {
         field: query.sortBy,
