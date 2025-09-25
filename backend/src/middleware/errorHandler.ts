@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import { logger } from '@/config'
 import { ApiError, ApiErrorBuilder, ResponseBuilder, ApiErrorCode } from '@/utils'
 import { ZodError } from 'zod'
+import { ValidationError } from '@/utils/ValidationHelpers'
 
 export interface AppError extends Error {
   statusCode?: number
@@ -27,6 +28,14 @@ export class CustomError extends Error implements AppError {
 
 // Convert different error types to ApiError
 const convertToApiError = (error: any): { apiError: ApiError; statusCode: number } => {
+  // Custom ValidationError from ValidationHelpers
+  if (error instanceof ValidationError) {
+    return {
+      apiError: ApiErrorBuilder.validationError(error.details, error.message),
+      statusCode: 400
+    }
+  }
+
   // Zod validation errors
   if (error instanceof ZodError) {
     const details = error.issues.reduce((acc, issue) => {

@@ -25,7 +25,7 @@ const prodFormat = combine(
 
 // Console transport
 const consoleTransport = new winston.transports.Console({
-  format: env.NODE_ENV === 'development' ? devFormat : simple
+  format: env.NODE_ENV === 'development' ? devFormat : winston.format.simple()
 })
 
 // File transport
@@ -41,7 +41,7 @@ const errorFileTransport = new winston.transports.File({
   format: prodFormat
 })
 
-const transports = [consoleTransport]
+const transports: winston.transport[] = [consoleTransport]
 
 // Add file transports in production
 if (env.NODE_ENV === 'production') {
