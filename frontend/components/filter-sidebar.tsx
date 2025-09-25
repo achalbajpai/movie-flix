@@ -21,12 +21,12 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const [priceRange, setPriceRange] = useState(() => {
+  const [priceRange, setPriceRange] = useState<[number, number]>(() => {
     const minPrice = searchParams.get('priceMin')
     const maxPrice = searchParams.get('priceMax')
     return [
       minPrice ? parseInt(minPrice) : 0,
-      maxPrice ? parseInt(maxPrice) : 2000
+      maxPrice ? parseInt(maxPrice) : 5000
     ]
   })
 
@@ -64,7 +64,7 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
       const apiMin = filters.priceRange.min
       const apiMax = filters.priceRange.max
 
-      if (currentMin < apiMin || currentMax > apiMax || (currentMin === 0 && currentMax === 2000)) {
+      if (currentMin < apiMin || currentMax > apiMax || currentMax === 5000) {
         setPriceRange([
           Math.max(currentMin, apiMin),
           Math.min(currentMax, apiMax)
@@ -76,9 +76,9 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
   useEffect(() => {
     const minPrice = searchParams.get('priceMin')
     const maxPrice = searchParams.get('priceMax')
-    const newPriceRange = [
+    const newPriceRange: [number, number] = [
       minPrice ? parseInt(minPrice) : (filters?.priceRange?.min || 0),
-      maxPrice ? parseInt(maxPrice) : (filters?.priceRange?.max || 2000)
+      maxPrice ? parseInt(maxPrice) : (filters?.priceRange?.max || 5000)
     ]
     setPriceRange(newPriceRange)
 
@@ -106,8 +106,8 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
     }
   }, [searchParams, filters])
 
-  const operators = filters?.availableOperators?.map(op => op.name) || ["RedBus Express", "Volvo Travels", "SRS Travels", "Orange Tours", "Greenline Travels"]
-  const busTypes = filters?.availableBusTypes?.map(bt => bt.name) || ["AC Sleeper", "Non-AC Sleeper", "AC Seater", "Non-AC Seater", "Volvo AC", "Multi-Axle"]
+  const operators = filters?.availableOperators?.map(op => op.name) || []
+  const busTypes = filters?.availableBusTypes?.map(bt => bt.name) || []
 
   const departureSlots = [
     { label: "Early Morning", value: "early", time: "6 AM - 12 PM" },
@@ -127,7 +127,8 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
 
     // Apply price range
     if (priceRange[0] > 0) params.set('priceMin', priceRange[0].toString())
-    if (priceRange[1] < 2000) params.set('priceMax', priceRange[1].toString())
+    const apiMaxPrice = filters?.priceRange?.max || 5000
+    if (priceRange[1] < apiMaxPrice) params.set('priceMax', priceRange[1].toString())
 
     // Apply selected filters
     if (selectedOperators.length > 0) params.set('operators', selectedOperators.join(','))
@@ -181,7 +182,7 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
 
   const clearAllFilters = () => {
     const defaultMin = filters?.priceRange?.min || 0
-    const defaultMax = filters?.priceRange?.max || 2000
+    const defaultMax = filters?.priceRange?.max || 5000
 
     setPriceRange([defaultMin, defaultMax])
     setSelectedOperators([])
@@ -199,7 +200,7 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
     const maxPrice = searchParams.get('priceMax')
     setPriceRange([
       minPrice ? parseInt(minPrice) : (filters?.priceRange?.min || 0),
-      maxPrice ? parseInt(maxPrice) : (filters?.priceRange?.max || 2000)
+      maxPrice ? parseInt(maxPrice) : (filters?.priceRange?.max || 5000)
     ])
 
     const operators = searchParams.get('operators')
@@ -231,7 +232,7 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
     const currentUrlBusTypes = searchParams.get('busTypes')?.split(',').filter(Boolean) || []
     const currentUrlTimeSlots = searchParams.get('departureTimeSlots') || ''
     const currentUrlMinPrice = parseInt(searchParams.get('priceMin') || (filters?.priceRange?.min || 0).toString())
-    const currentUrlMaxPrice = parseInt(searchParams.get('priceMax') || (filters?.priceRange?.max || 2000).toString())
+    const currentUrlMaxPrice = parseInt(searchParams.get('priceMax') || (filters?.priceRange?.max || 5000).toString())
 
     const currentTimeSlots: string[] = []
     if (currentUrlTimeSlots) {
@@ -297,8 +298,8 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
         <div className="px-2">
           <Slider
             value={priceRange}
-            onValueChange={setPriceRange}
-            max={filters?.priceRange?.max || 2000}
+            onValueChange={(value) => setPriceRange(value as [number, number])}
+            max={filters?.priceRange?.max || 5000}
             min={filters?.priceRange?.min || 0}
             step={50}
             className="w-full"
@@ -334,47 +335,51 @@ export function FilterSidebar({ filters, loading }: FilterSidebarProps) {
         </div>
       </div>
 
-      <Separator className="my-6" />
-
-      {/* Bus Type */}
-      <div className="space-y-4 mb-6">
-        <Label className="text-sm font-medium">Bus Type</Label>
-        <div className="space-y-3">
-          {busTypes.map((type) => (
-            <div key={type} className="flex items-center space-x-2">
-              <Checkbox
-                id={type}
-                checked={selectedBusTypes.includes(type)}
-                onCheckedChange={(checked) => handleBusTypeChange(type, checked as boolean)}
-              />
-              <Label htmlFor={type} className="text-sm font-normal cursor-pointer">
-                {type}
-              </Label>
+      {busTypes.length > 0 && (
+        <>
+          <Separator className="my-6" />
+          <div className="space-y-4 mb-6">
+            <Label className="text-sm font-medium">Bus Type</Label>
+            <div className="space-y-3">
+              {busTypes.map((type) => (
+                <div key={type} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={type}
+                    checked={selectedBusTypes.includes(type)}
+                    onCheckedChange={(checked) => handleBusTypeChange(type, checked as boolean)}
+                  />
+                  <Label htmlFor={type} className="text-sm font-normal cursor-pointer">
+                    {type}
+                  </Label>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
-      <Separator className="my-6" />
-
-      {/* Operators */}
-      <div className="space-y-4 mb-6">
-        <Label className="text-sm font-medium">Operators</Label>
-        <div className="space-y-3">
-          {operators.map((operator) => (
-            <div key={operator} className="flex items-center space-x-2">
-              <Checkbox
-                id={operator}
-                checked={selectedOperators.includes(operator)}
-                onCheckedChange={(checked) => handleOperatorChange(operator, checked as boolean)}
-              />
-              <Label htmlFor={operator} className="text-sm font-normal cursor-pointer">
-                {operator}
-              </Label>
+      {operators.length > 0 && (
+        <>
+          <Separator className="my-6" />
+          <div className="space-y-4 mb-6">
+            <Label className="text-sm font-medium">Operators</Label>
+            <div className="space-y-3">
+              {operators.map((operator) => (
+                <div key={operator} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={operator}
+                    checked={selectedOperators.includes(operator)}
+                    onCheckedChange={(checked) => handleOperatorChange(operator, checked as boolean)}
+                  />
+                  <Label htmlFor={operator} className="text-sm font-normal cursor-pointer">
+                    {operator}
+                  </Label>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Apply Filters Button */}
       <div className="pt-4 border-t border-border space-y-2">

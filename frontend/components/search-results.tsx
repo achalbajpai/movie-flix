@@ -9,58 +9,6 @@ import { MapPin, Star, Wifi, Zap, Snowflake, Users, ChevronDown, ChevronUp } fro
 import { Bus } from "@/lib/api"
 import { useSearchParams, useRouter } from "next/navigation"
 
-// Mock data for demonstration
-const mockBuses = [
-  {
-    id: 1,
-    operator: "Volvo Travels",
-    busType: "AC Sleeper",
-    rating: 4.2,
-    reviews: 1250,
-    departureTime: "22:30",
-    arrivalTime: "06:45",
-    duration: "8h 15m",
-    departureLocation: "Central Bus Stand",
-    arrivalLocation: "City Terminal",
-    price: 1200,
-    seatsAvailable: 12,
-    amenities: ["wifi", "ac", "charging"],
-    features: ["Live Tracking", "Emergency Contact"],
-  },
-  {
-    id: 2,
-    operator: "RedBus Express",
-    busType: "AC Seater",
-    rating: 4.0,
-    reviews: 890,
-    departureTime: "14:15",
-    arrivalTime: "20:30",
-    duration: "6h 15m",
-    departureLocation: "Main Station",
-    arrivalLocation: "Downtown Terminal",
-    price: 850,
-    seatsAvailable: 8,
-    amenities: ["ac", "charging"],
-    features: ["Live Tracking"],
-  },
-  {
-    id: 3,
-    operator: "SRS Travels",
-    busType: "Non-AC Sleeper",
-    rating: 3.8,
-    reviews: 650,
-    departureTime: "23:45",
-    arrivalTime: "07:30",
-    duration: "7h 45m",
-    departureLocation: "Bus Depot",
-    arrivalLocation: "Central Station",
-    price: 750,
-    seatsAvailable: 15,
-    amenities: ["charging"],
-    features: ["Emergency Contact"],
-  },
-]
-
 interface SearchResultsProps {
   buses: Bus[]
   loading: boolean
@@ -182,7 +130,7 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
               <div className="flex items-center gap-4">
                 <div className="text-center">
                   <div className="text-xl font-bold text-foreground">{bus.departureTime}</div>
-                  <div className="text-xs text-muted-foreground">{bus.departureLocation}</div>
+                  <div className="text-xs text-muted-foreground">Departure</div>
                 </div>
 
                 <div className="flex-1 flex items-center gap-2">
@@ -193,7 +141,7 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
 
                 <div className="text-center">
                   <div className="text-xl font-bold text-foreground">{bus.arrivalTime}</div>
-                  <div className="text-xs text-muted-foreground">{bus.arrivalLocation}</div>
+                  <div className="text-xs text-muted-foreground">Arrival</div>
                 </div>
               </div>
 
