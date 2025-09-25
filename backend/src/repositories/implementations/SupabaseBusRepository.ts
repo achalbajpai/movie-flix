@@ -1,8 +1,8 @@
-import { IBusRepository, ICityRepository, IOperatorRepository } from '@/repositories/interfaces'
+import { IBusRepository, IOperatorRepository } from '@/repositories/interfaces'
 import { Bus, SearchQuery, SearchFilters, SearchResultMetadata } from '@/models'
-import { BusSearchResult, BusSearchFilters } from '@/models/Database'
+import { BusSearchResult } from '@/models/Database'
 import { supabase } from '@/config'
-import { transformBusSearchToApi, transformCityName, transformOperatorFromDatabase } from '@/utils'
+import { transformBusSearchToApi } from '@/utils'
 import { logger } from '@/config'
 
 export class SupabaseBusRepository implements IBusRepository {
@@ -120,21 +120,21 @@ export class SupabaseBusRepository implements IBusRepository {
 
           const busSearchResult: BusSearchResult = {
             schedule_id: row.schedule_id,
-            bus_id: row.Bus.bus_id,
-            operator_id: row.Bus.Operator.operator_id,
-            bus_no: row.Bus.bus_no,
-            bus_type: row.Bus.bus_type,
-            company: row.Bus.Operator.company,
-            operator_verification: row.Bus.Operator.verification,
-            source_des: row.Routes.source_des,
-            drop_des: row.Routes.drop_des,
-            distance: row.Routes.distance,
-            approx_time: row.Routes.approx_time,
+            bus_id: (row.Bus as any).bus_id,
+            operator_id: (row.Bus as any).Operator.operator_id,
+            bus_no: (row.Bus as any).bus_no,
+            bus_type: (row.Bus as any).bus_type,
+            company: (row.Bus as any).Operator.company,
+            operator_verification: (row.Bus as any).Operator.verification,
+            source_des: (row.Routes as any).source_des,
+            drop_des: (row.Routes as any).drop_des,
+            distance: (row.Routes as any).distance,
+            approx_time: (row.Routes as any).approx_time,
             departure: row.departure,
             arrival: row.arrival,
             base_price: row.base_price,
             available_seats: availableSeats,
-            total_seats: row.Bus.total_seats
+            total_seats: (row.Bus as any).total_seats
           }
 
           buses.push(transformBusSearchToApi(busSearchResult))
@@ -198,21 +198,21 @@ export class SupabaseBusRepository implements IBusRepository {
 
       const busSearchResult: BusSearchResult = {
         schedule_id: data.schedule_id,
-        bus_id: data.Bus.bus_id,
-        operator_id: data.Bus.Operator.operator_id,
-        bus_no: data.Bus.bus_no,
-        bus_type: data.Bus.bus_type,
-        company: data.Bus.Operator.company,
-        operator_verification: data.Bus.Operator.verification,
-        source_des: data.Routes.source_des,
-        drop_des: data.Routes.drop_des,
-        distance: data.Routes.distance,
-        approx_time: data.Routes.approx_time,
+        bus_id: (data.Bus as any).bus_id,
+        operator_id: (data.Bus as any).Operator.operator_id,
+        bus_no: (data.Bus as any).bus_no,
+        bus_type: (data.Bus as any).bus_type,
+        company: (data.Bus as any).Operator.company,
+        operator_verification: (data.Bus as any).Operator.verification,
+        source_des: (data.Routes as any).source_des,
+        drop_des: (data.Routes as any).drop_des,
+        distance: (data.Routes as any).distance,
+        approx_time: (data.Routes as any).approx_time,
         departure: data.departure,
         arrival: data.arrival,
         base_price: data.base_price,
         available_seats: availableSeats,
-        total_seats: data.Bus.total_seats
+        total_seats: (data.Bus as any).total_seats
       }
 
       return transformBusSearchToApi(busSearchResult)
@@ -266,21 +266,21 @@ export class SupabaseBusRepository implements IBusRepository {
 
           const busSearchResult: BusSearchResult = {
             schedule_id: row.schedule_id,
-            bus_id: row.Bus.bus_id,
-            operator_id: row.Bus.Operator.operator_id,
-            bus_no: row.Bus.bus_no,
-            bus_type: row.Bus.bus_type,
-            company: row.Bus.Operator.company,
-            operator_verification: row.Bus.Operator.verification,
-            source_des: row.Routes.source_des,
-            drop_des: row.Routes.drop_des,
-            distance: row.Routes.distance,
-            approx_time: row.Routes.approx_time,
+            bus_id: (row.Bus as any).bus_id,
+            operator_id: (row.Bus as any).Operator.operator_id,
+            bus_no: (row.Bus as any).bus_no,
+            bus_type: (row.Bus as any).bus_type,
+            company: (row.Bus as any).Operator.company,
+            operator_verification: (row.Bus as any).Operator.verification,
+            source_des: (row.Routes as any).source_des,
+            drop_des: (row.Routes as any).drop_des,
+            distance: (row.Routes as any).distance,
+            approx_time: (row.Routes as any).approx_time,
             departure: row.departure,
             arrival: row.arrival,
             base_price: row.base_price,
             available_seats: availableSeats,
-            total_seats: row.Bus.total_seats
+            total_seats: (row.Bus as any).total_seats
           }
 
           buses.push(transformBusSearchToApi(busSearchResult))
@@ -338,21 +338,21 @@ export class SupabaseBusRepository implements IBusRepository {
 
           const busSearchResult: BusSearchResult = {
             schedule_id: row.schedule_id,
-            bus_id: row.Bus.bus_id,
-            operator_id: row.Bus.Operator.operator_id,
-            bus_no: row.Bus.bus_no,
-            bus_type: row.Bus.bus_type,
-            company: row.Bus.Operator.company,
-            operator_verification: row.Bus.Operator.verification,
-            source_des: row.Routes.source_des,
-            drop_des: row.Routes.drop_des,
-            distance: row.Routes.distance,
-            approx_time: row.Routes.approx_time,
+            bus_id: (row.Bus as any).bus_id,
+            operator_id: (row.Bus as any).Operator.operator_id,
+            bus_no: (row.Bus as any).bus_no,
+            bus_type: (row.Bus as any).bus_type,
+            company: (row.Bus as any).Operator.company,
+            operator_verification: (row.Bus as any).Operator.verification,
+            source_des: (row.Routes as any).source_des,
+            drop_des: (row.Routes as any).drop_des,
+            distance: (row.Routes as any).distance,
+            approx_time: (row.Routes as any).approx_time,
             departure: row.departure,
             arrival: row.arrival,
             base_price: row.base_price,
             available_seats: availableSeats,
-            total_seats: row.Bus.total_seats
+            total_seats: (row.Bus as any).total_seats
           }
 
           buses.push(transformBusSearchToApi(busSearchResult))
@@ -366,7 +366,7 @@ export class SupabaseBusRepository implements IBusRepository {
     }
   }
 
-  async getSearchFilters(query: SearchQuery): Promise<SearchFilters> {
+  async getSearchFilters(_query: SearchQuery): Promise<SearchFilters> {
     try {
       // Get available operators
       const { data: operatorData, error: operatorError } = await supabase
@@ -476,6 +476,47 @@ export class SupabaseBusRepository implements IBusRepository {
     }
   }
 
+  async getOperatorStatistics(): Promise<Array<{ operatorId: string; busCount: number }>> {
+    try {
+      const { data, error } = await supabase
+        .from('Bus')
+        .select(`
+          operator_id,
+          Operator!inner (
+            operator_id,
+            company
+          )
+        `)
+
+      if (error) {
+        throw new Error(`Database query failed: ${error.message}`)
+      }
+
+      if (!data) {
+        return []
+      }
+
+      // Group buses by operator and count them
+      const operatorStatsMap = new Map<string, number>()
+
+      data.forEach((bus: any) => {
+        const operatorId = bus.operator_id?.toString()
+        if (operatorId) {
+          const currentCount = operatorStatsMap.get(operatorId) || 0
+          operatorStatsMap.set(operatorId, currentCount + 1)
+        }
+      })
+
+      return Array.from(operatorStatsMap.entries()).map(([operatorId, busCount]) => ({
+        operatorId,
+        busCount
+      }))
+    } catch (error) {
+      logger.error('Get operator statistics error', { error: (error as Error).message })
+      throw error
+    }
+  }
+
   private async getAvailableSeatsCount(scheduleId: number): Promise<number> {
     try {
       const { data: seatsData, error: seatsError } = await supabase
@@ -492,66 +533,6 @@ export class SupabaseBusRepository implements IBusRepository {
     } catch (error) {
       logger.error('Get available seats count error', { error: (error as Error).message, scheduleId })
       return 0
-    }
-  }
-}
-
-export class SupabaseCityRepository implements ICityRepository {
-  async findAll(): Promise<Array<{ id: string; name: string; state: string }>> {
-    try {
-      // Get unique cities from Routes table
-      const { data: sourceData, error: sourceError } = await supabase
-        .from('Routes')
-        .select('source_des')
-
-      const { data: destData, error: destError } = await supabase
-        .from('Routes')
-        .select('drop_des')
-
-      if (sourceError || destError) {
-        logger.error('Failed to fetch cities', { sourceError, destError })
-        throw new Error('Failed to fetch cities')
-      }
-
-      const allCities = new Set<string>()
-
-      sourceData?.forEach(row => allCities.add(row.source_des))
-      destData?.forEach(row => allCities.add(row.drop_des))
-
-      return Array.from(allCities)
-        .map(city => transformCityName(city))
-        .sort((a, b) => a.name.localeCompare(b.name))
-    } catch (error) {
-      logger.error('Find all cities error', { error: (error as Error).message })
-      throw error
-    }
-  }
-
-  async findByQuery(query: string, limit = 10): Promise<Array<{ id: string; name: string; state: string }>> {
-    try {
-      const allCities = await this.findAll()
-
-      const filtered = allCities
-        .filter(city =>
-          city.name.toLowerCase().includes(query.toLowerCase()) ||
-          city.state.toLowerCase().includes(query.toLowerCase())
-        )
-        .slice(0, limit)
-
-      return filtered
-    } catch (error) {
-      logger.error('Find cities by query error', { error: (error as Error).message, query })
-      throw error
-    }
-  }
-
-  async findById(id: string): Promise<{ id: string; name: string; state: string } | null> {
-    try {
-      const allCities = await this.findAll()
-      return allCities.find(city => city.id === id) || null
-    } catch (error) {
-      logger.error('Find city by ID error', { error: (error as Error).message, id })
-      throw error
     }
   }
 }

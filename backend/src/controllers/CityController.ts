@@ -49,7 +49,7 @@ export class CityController {
 
     const cities = await this.cityService.searchCities(query, limit)
 
-    res.json(ResponseBuilder.success(cities, `Cities matching "${query}" retrieved successfully`))
+    return res.json(ResponseBuilder.success(cities, `Cities matching "${query}" retrieved successfully`))
   })
 
   /**
@@ -69,26 +69,8 @@ export class CityController {
    * GET /api/v1/cities/popular
    */
   getPopularCities = asyncHandler(async (req: Request, res: Response) => {
-    // For now, return a hardcoded list of popular cities
-    // In a real implementation, this would be based on booking data
-    const allCities = await this.cityService.getAllCities()
-
-    // Mock popular cities logic - just return first few major cities
-    const popularCityNames = ['Mumbai', 'Delhi', 'Bangalore', 'Pune', 'Hyderabad', 'Chennai', 'Kolkata', 'Ahmedabad']
-    const popularCities = allCities.filter(city =>
-      popularCityNames.some(popularName =>
-        city.name.toLowerCase().includes(popularName.toLowerCase()) ||
-        popularName.toLowerCase().includes(city.name.toLowerCase())
-      )
-    ).slice(0, 8)
-
-    // If we don't have enough popular cities from our mapping, fill with the first cities
-    if (popularCities.length < 5) {
-      const additionalCities = allCities
-        .filter(city => !popularCities.some(pc => pc.id === city.id))
-        .slice(0, 5 - popularCities.length)
-      popularCities.push(...additionalCities)
-    }
+    // Get popular cities based on actual route frequency
+    const popularCities = await this.cityService.getPopularCities()
 
     res.json(ResponseBuilder.success(popularCities, 'Popular cities retrieved successfully'))
   })

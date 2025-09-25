@@ -92,12 +92,7 @@ export class BusService implements IBusService {
 
       const totalBuses = await this.busRepository.getTotalCount()
 
-      // For now, we'll use mock operator stats
-      // In a real implementation, this would aggregate data from the database
-      const operatorStats = [
-        { operatorId: 'op-1', busCount: 2 },
-        { operatorId: 'op-2', busCount: 1 }
-      ]
+      const operatorStats = await this.busRepository.getOperatorStatistics()
 
       return {
         totalBuses,

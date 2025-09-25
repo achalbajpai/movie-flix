@@ -91,6 +91,27 @@ export class CityService implements ICityService {
     }
   }
 
+  async getPopularCities(limit = 8): Promise<Array<{ id: string; name: string; state: string }>> {
+    try {
+      logger.info('Fetching popular cities', { limit })
+
+      const popularCities = await this.cityRepository.findPopularCities(limit)
+
+      const result = popularCities.map(city => ({
+        id: city.id,
+        name: city.name,
+        state: city.state
+      }))
+
+      logger.info('Popular cities fetched successfully', { count: result.length })
+
+      return result
+    } catch (error) {
+      logger.error('Error fetching popular cities', { error: (error as Error).message })
+      throw error
+    }
+  }
+
   private prioritizeExactMatches(
     cities: Array<{ id: string; name: string; state: string }>,
     query: string

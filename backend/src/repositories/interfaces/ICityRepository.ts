@@ -5,4 +5,5 @@ export interface ICityRepository {
   findByQuery(query: string, limit?: number): Promise<City[]>
   findById(id: string): Promise<City | null>
   findByIds(ids: string[]): Promise<City[]>
+  findPopularCities(limit?: number): Promise<City[]>
 }

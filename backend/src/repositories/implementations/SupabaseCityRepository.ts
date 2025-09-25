@@ -140,4 +140,72 @@ export class SupabaseCityRepository implements ICityRepository {
     const allCities = await this.getUniqueCities()
     return allCities.filter(city => ids.includes(city.id))
   }
+
+  async findPopularCities(limit = 8): Promise<City[]> {
+    try {
+      const { data: routeData, error } = await supabase
+        .from('Routes')
+        .select('source_des, drop_des')
+
+      if (error) {
+        logger.error('Failed to fetch routes for popular cities', { error: error.message })
+        const allCities = await this.getUniqueCities()
+        return allCities.slice(0, limit)
+      }
+
+      if (!routeData) {
+        const allCities = await this.getUniqueCities()
+        return allCities.slice(0, limit)
+      }
+
+      const cityFrequency = new Map<string, number>()
+
+      routeData.forEach((route: any) => {
+        if (route.source_des) {
+          const current = cityFrequency.get(route.source_des) || 0
+          cityFrequency.set(route.source_des, current + 1)
+        }
+        if (route.drop_des) {
+          const current = cityFrequency.get(route.drop_des) || 0
+          cityFrequency.set(route.drop_des, current + 1)
+        }
+      })
+
+      const sortedCities = Array.from(cityFrequency.entries())
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, limit)
+        .map(([cityName]) => cityName)
+
+      const allCities = await this.getUniqueCities()
+      const popularCities: City[] = []
+
+      for (const cityName of sortedCities) {
+        const city = allCities.find(c =>
+          c.name.toLowerCase().includes(cityName.toLowerCase()) ||
+          cityName.toLowerCase().includes(c.name.toLowerCase())
+        )
+        if (city && !popularCities.some(pc => pc.id === city.id)) {
+          popularCities.push(city)
+        }
+      }
+
+      if (popularCities.length < limit) {
+        const remainingCities = allCities.filter(city =>
+          !popularCities.some(pc => pc.id === city.id)
+        ).slice(0, limit - popularCities.length)
+        popularCities.push(...remainingCities)
+      }
+
+      logger.info('Popular cities found based on route frequency', {
+        count: popularCities.length,
+        cities: popularCities.map(c => c.name)
+      })
+
+      return popularCities
+    } catch (error) {
+      logger.error('Error fetching popular cities', { error: (error as Error).message })
+      const allCities = await this.getUniqueCities()
+      return allCities.slice(0, limit)
+    }
+  }
 }

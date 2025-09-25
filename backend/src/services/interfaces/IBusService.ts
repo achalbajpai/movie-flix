@@ -22,12 +22,6 @@ export interface IBusService {
   }>
 }
 
-export interface ICityService {
-  getAllCities(): Promise<Array<{ id: string; name: string; state: string }>>
-  searchCities(query: string, limit?: number): Promise<Array<{ id: string; name: string; state: string }>>
-  getCityById(id: string): Promise<{ id: string; name: string; state: string }>
-}
-
 export interface IOperatorService {
   getAllOperators(): Promise<Array<{ id: string; name: string; rating: number }>>
   getOperatorById(id: string): Promise<{ id: string; name: string; rating: number }>

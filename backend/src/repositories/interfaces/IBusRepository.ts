@@ -18,12 +18,7 @@ export interface IBusRepository {
   // Statistics
   getTotalCount(): Promise<number>
   getBusCountByOperator(operatorId: string): Promise<number>
-}
-
-export interface ICityRepository {
-  findAll(): Promise<Array<{ id: string; name: string; state: string }>>
-  findByQuery(query: string, limit?: number): Promise<Array<{ id: string; name: string; state: string }>>
-  findById(id: string): Promise<{ id: string; name: string; state: string } | null>
+  getOperatorStatistics(): Promise<Array<{ operatorId: string; busCount: number }>>
 }
 
 export interface IOperatorRepository {
