@@ -1,9 +1,7 @@
 import { IBusRepository, IOperatorRepository } from '@/repositories/interfaces'
-import { Bus, SearchQuery, SearchFilters, SearchResultMetadata } from '@/models'
-import { BusSearchResult } from '@/models/Database'
-import { supabase } from '@/config'
+import { Bus, SearchQuery, SearchFilters, SearchResultMetadata, BusSearchResult } from '@/models'
+import { supabase, logger } from '@/config'
 import { transformBusSearchToApi } from '@/utils'
-import { logger } from '@/config'
 
 export const createSupabaseBusRepository = (): IBusRepository => {
   const searchBuses = async (query: SearchQuery): Promise<{
@@ -520,7 +518,7 @@ export const createSupabaseBusRepository = (): IBusRepository => {
   const getAvailableSeatsCount = async (scheduleId: number): Promise<number> => {
     try {
       const { data: seatsData, error: seatsError } = await supabase
-        .from('Seats')
+        .from('Seat')
         .select('seat_id, is_reserved')
         .eq('schedule_id', scheduleId)
 

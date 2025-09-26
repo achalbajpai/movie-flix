@@ -28,6 +28,8 @@ import {
   SortOptionSchema,
   PaginationParamsSchema
 } from './schemas'
+
+import { bookingValidationSchemas } from './BookingValidationSchemas'
 import { logger } from '@/config'
 
 // Create the global validation factory instance
@@ -41,8 +43,6 @@ export const validationFactory = createValidationFactory({
 
 // Schema registration function
 export const registerAllSchemas = (): void => {
-  logger.info('Registering validation schemas...')
-
   try {
     // Bus-related schemas
     validationFactory.registerSchema('busSearchQuery', BusSearchQuerySchema, 'Schema for bus search query parameters')
@@ -72,9 +72,9 @@ export const registerAllSchemas = (): void => {
     validationFactory.registerSchema('sortOption', SortOptionSchema, 'Legacy sort option schema')
     validationFactory.registerSchema('paginationParams', PaginationParamsSchema, 'Legacy pagination parameters schema')
 
-    const registeredCount = validationFactory.listSchemas().length
-    logger.info(`Successfully registered ${registeredCount} validation schemas`, {
-      schemas: validationFactory.listSchemas()
+    // Booking and seat schemas
+    Object.entries(bookingValidationSchemas).forEach(([name, schema]) => {
+      validationFactory.registerSchema(name, schema as any, `Schema for ${name} validation`)
     })
 
   } catch (error) {
@@ -103,7 +103,27 @@ export const validate = {
   pagination: (data: unknown) => validationFactory.validate('pagination', data),
   sort: (data: unknown) => validationFactory.validate('sort', data),
   filter: (data: unknown) => validationFactory.validate('filter', data),
-  commonHeaders: (data: unknown) => validationFactory.validate('commonHeaders', data)
+  commonHeaders: (data: unknown) => validationFactory.validate('commonHeaders', data),
+
+  // Booking and seat validations - explicitly defined for TypeScript
+  createBooking: (data: unknown) => validationFactory.validate('createBooking', data, { strategy: 'safe' }),
+  updateBooking: (data: unknown) => validationFactory.validate('updateBooking', data, { strategy: 'safe' }),
+  cancelBooking: (data: unknown) => validationFactory.validate('cancelBooking', data, { strategy: 'safe' }),
+  bookingId: (data: unknown) => validationFactory.validate('bookingId', data, { strategy: 'safe' }),
+  userId: (data: unknown) => validationFactory.validate('userId', data, { strategy: 'safe' }),
+  scheduleId: (data: unknown) => validationFactory.validate('scheduleId', data, { strategy: 'safe' }),
+  bookingReference: (data: unknown) => validationFactory.validate('bookingReference', data, { strategy: 'safe' }),
+  bookingStatusParam: (data: unknown) => validationFactory.validate('bookingStatusParam', data, { strategy: 'safe' }),
+  bookingQuery: (data: unknown) => validationFactory.validate('bookingQuery', data, { strategy: 'safe' }),
+  dateRange: (data: unknown) => validationFactory.validate('dateRange', data, { strategy: 'safe' }),
+  bookingStatus: (data: unknown) => validationFactory.validate('bookingStatus', data, { strategy: 'safe' }),
+  seatId: (data: unknown) => validationFactory.validate('seatId', data, { strategy: 'safe' }),
+  seatNumber: (data: unknown) => validationFactory.validate('seatNumber', data, { strategy: 'safe' }),
+  seatIds: (data: unknown) => validationFactory.validate('seatIds', data, { strategy: 'safe' }),
+  seatStatus: (data: unknown) => validationFactory.validate('seatStatus', data, { strategy: 'safe' }),
+  seatReservation: (data: unknown) => validationFactory.validate('seatReservation', data, { strategy: 'safe' }),
+  reservationId: (data: unknown) => validationFactory.validate('reservationId', data, { strategy: 'safe' }),
+  extensionMinutes: (data: unknown) => validationFactory.validate('extensionMinutes', data, { strategy: 'safe' })
 }
 
 // Export middleware creators
@@ -137,7 +157,27 @@ export const safeValidate = {
   pagination: (data: unknown) => validationFactory.validate('pagination', data, { strategy: 'safe' }),
   sort: (data: unknown) => validationFactory.validate('sort', data, { strategy: 'safe' }),
   filter: (data: unknown) => validationFactory.validate('filter', data, { strategy: 'safe' }),
-  commonHeaders: (data: unknown) => validationFactory.validate('commonHeaders', data, { strategy: 'safe' })
+  commonHeaders: (data: unknown) => validationFactory.validate('commonHeaders', data, { strategy: 'safe' }),
+
+  // Booking and seat safe validations
+  createBooking: (data: unknown) => validationFactory.validate('createBooking', data, { strategy: 'safe' }),
+  updateBooking: (data: unknown) => validationFactory.validate('updateBooking', data, { strategy: 'safe' }),
+  cancelBooking: (data: unknown) => validationFactory.validate('cancelBooking', data, { strategy: 'safe' }),
+  bookingId: (data: unknown) => validationFactory.validate('bookingId', data, { strategy: 'safe' }),
+  userId: (data: unknown) => validationFactory.validate('userId', data, { strategy: 'safe' }),
+  scheduleId: (data: unknown) => validationFactory.validate('scheduleId', data, { strategy: 'safe' }),
+  bookingReference: (data: unknown) => validationFactory.validate('bookingReference', data, { strategy: 'safe' }),
+  bookingStatusParam: (data: unknown) => validationFactory.validate('bookingStatusParam', data, { strategy: 'safe' }),
+  bookingQuery: (data: unknown) => validationFactory.validate('bookingQuery', data, { strategy: 'safe' }),
+  dateRange: (data: unknown) => validationFactory.validate('dateRange', data, { strategy: 'safe' }),
+  bookingStatus: (data: unknown) => validationFactory.validate('bookingStatus', data, { strategy: 'safe' }),
+  seatId: (data: unknown) => validationFactory.validate('seatId', data, { strategy: 'safe' }),
+  seatNumber: (data: unknown) => validationFactory.validate('seatNumber', data, { strategy: 'safe' }),
+  seatIds: (data: unknown) => validationFactory.validate('seatIds', data, { strategy: 'safe' }),
+  seatStatus: (data: unknown) => validationFactory.validate('seatStatus', data, { strategy: 'safe' }),
+  seatReservation: (data: unknown) => validationFactory.validate('seatReservation', data, { strategy: 'safe' }),
+  reservationId: (data: unknown) => validationFactory.validate('reservationId', data, { strategy: 'safe' }),
+  extensionMinutes: (data: unknown) => validationFactory.validate('extensionMinutes', data, { strategy: 'safe' })
 }
 
 export { ValidationFactory, createValidationFactory } from './ValidationFactory'
