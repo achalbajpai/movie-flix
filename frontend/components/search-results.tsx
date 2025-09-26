@@ -20,6 +20,13 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
+  const handleBookNow = (bus: Bus) => {
+    const bookingParams = new URLSearchParams(searchParams.toString())
+    bookingParams.set('busId', bus.id)
+    bookingParams.set('scheduleId', bus.id)
+    router.push(`/booking?${bookingParams.toString()}`)
+  }
+
   const handleSortChange = (newSortBy: string) => {
     setSortBy(newSortBy)
     const params = new URLSearchParams(searchParams.toString())
@@ -44,7 +51,6 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
     setExpandedBus(expandedBus === busId ? null : busId)
   }
 
-  // Sort buses based on current sort option
   const sortedBuses = [...buses].sort((a, b) => {
     switch (sortBy) {
       case 'price':
@@ -91,7 +97,6 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
 
   return (
     <div className="space-y-4">
-      {/* Sort Options */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">{buses.length} buses found</h2>
         <div className="flex items-center gap-2">
@@ -109,11 +114,9 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
         </div>
       </div>
 
-      {/* Bus Results */}
       {sortedBuses.map((bus) => (
         <Card key={bus.id} className="p-6 hover:shadow-md transition-shadow">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            {/* Bus Info */}
             <div className="flex-1 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
@@ -126,7 +129,6 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
                 </div>
               </div>
 
-              {/* Time and Duration */}
               <div className="flex items-center gap-4">
                 <div className="text-center">
                   <div className="text-xl font-bold text-foreground">{bus.departureTime}</div>
@@ -145,7 +147,6 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
                 </div>
               </div>
 
-              {/* Amenities */}
               <div className="flex items-center gap-3">
                 {bus.amenities.slice(0, 3).map((amenity) => (
                   <div key={amenity.id} className="flex items-center gap-1 text-muted-foreground">
@@ -159,7 +160,6 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
               </div>
             </div>
 
-            {/* Price and Info */}
             <div className="flex lg:flex-col items-center lg:items-end gap-4 lg:gap-2">
               <div className="text-right">
                 <div className="text-2xl font-bold text-foreground">₹{bus.price}</div>
@@ -169,21 +169,30 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
                 </div>
               </div>
 
-              <Button variant="outline" size="sm" onClick={() => toggleExpanded(bus.id)} className="text-xs">
-                {expandedBus === bus.id ? (
-                  <>
-                    Less Info <ChevronUp className="h-3 w-3 ml-1" />
-                  </>
-                ) : (
-                  <>
-                    More Info <ChevronDown className="h-3 w-3 ml-1" />
-                  </>
-                )}
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={() => handleBookNow(bus)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  disabled={bus.availableSeats === 0}
+                >
+                  {bus.availableSeats === 0 ? 'Sold Out' : 'Select Seats'}
+                </Button>
+
+                <Button variant="outline" size="sm" onClick={() => toggleExpanded(bus.id)} className="text-xs">
+                  {expandedBus === bus.id ? (
+                    <>
+                      Less Info <ChevronUp className="h-3 w-3 ml-1" />
+                    </>
+                  ) : (
+                    <>
+                      More Info <ChevronDown className="h-3 w-3 ml-1" />
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Expanded Details */}
           {expandedBus === bus.id && (
             <>
               <Separator className="my-4" />

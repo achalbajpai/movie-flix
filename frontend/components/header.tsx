@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Bus, User, Menu } from "lucide-react"
+import { Bus, User, Menu, Ticket, Search } from "lucide-react"
 import Link from "next/link"
 
 export function Header() {
@@ -13,9 +13,31 @@ export function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
+            <Link
+              href="/results"
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Search className="h-4 w-4" />
+              Search Buses
+            </Link>
+            <Link
+              href="/bookings"
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Ticket className="h-4 w-4" />
+              My Bookings
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
+            <div className="flex md:hidden items-center gap-2">
+              <Link href="/bookings">
+                <Button variant="ghost" size="sm">
+                  <Ticket className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+
             <Button variant="ghost" size="sm" className="hidden md:flex">
               <User className="h-4 w-4 mr-2" />
               Login

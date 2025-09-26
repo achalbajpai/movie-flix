@@ -77,7 +77,23 @@ export class ValidationFactory implements IValidationFactory {
       throw error
     }
 
-    return this.validateWithSchema(schema, data, config)
+    logger.debug('Validating data', {
+      schemaName,
+      dataType: typeof data,
+      dataKeys: typeof data === 'object' && data ? Object.keys(data) : undefined
+    })
+
+    const result = this.validateWithSchema(schema, data, config)
+
+    if (!result.success) {
+      logger.error('Validation failed for schema', {
+        schemaName,
+        errors: result.errors,
+        inputDataSample: typeof data === 'object' ? JSON.stringify(data, null, 2).substring(0, 500) : data
+      })
+    }
+
+    return result
   }
 
   validateWithSchema<T>(
@@ -128,7 +144,11 @@ export class ValidationFactory implements IValidationFactory {
         received: 'received' in issue ? issue.received : undefined
       }))
 
-      logger.debug('Validation failed', { errors })
+      logger.warn('Validation failed', {
+        errors,
+        inputData: typeof data === 'object' ? JSON.stringify(data, null, 2) : data,
+        schemaName: 'schema' in schema ? schema.description : 'unknown'
+      })
 
       // Handle based on strategy
       switch (finalConfig.strategy) {

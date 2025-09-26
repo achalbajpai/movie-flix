@@ -108,7 +108,9 @@ export const createApp = (): Application => {
   app.use('/', createApiRoutes({
     busController: container.busController,
     cityController: container.cityController,
-    healthController: container.healthController
+    healthController: container.healthController,
+    bookingController: container.bookingController,
+    seatController: container.seatController
   }))
 
   // Welcome route
