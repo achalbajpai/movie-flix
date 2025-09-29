@@ -2,40 +2,57 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Bus Search Flow', () => {
   test.beforeEach(async ({ page }) => {
+    // Set authentication bypass for tests
+    await page.addInitScript(() => {
+      localStorage.setItem('test-auth-bypass', 'true')
+    })
+
+    // Set headers for API calls
+    await page.setExtraHTTPHeaders({
+      'Authorization': 'Bearer test-token',
+      'user-id': '8b5c9a8f-9a3a-4a2b-8c7d-3e5f1a3b2c1d'
+    })
+
     await page.goto('http://localhost:3000/')
   })
 
   test('should complete the full bus search flow successfully', async ({ page }) => {
-    // Wait for the page to load completely
+    // Wait for the main page to load completely
     await expect(page.getByRole('heading', { name: 'Find Your Perfect Bus Journey' })).toBeVisible()
 
+    // Simple approach: Type slowly and click dropdown options
     const fromInput = page.getByPlaceholder('Departure city')
     await fromInput.click()
-    await fromInput.fill('Mumbai')
-    await page.waitForTimeout(1000) // Wait for API response
+    await fromInput.type('Mum', { delay: 100 })
+    await page.waitForTimeout(1000)
 
-    // If cities are loaded, click the first one, otherwise continue with typed text
-    const firstFromCity = page.locator('button').filter({ hasText: 'Mumbai' }).first()
-    if (await firstFromCity.isVisible({ timeout: 2000 })) {
-      await firstFromCity.click()
+    // Look for and click Mumbai in dropdown
+    const mumbaiButton = page.locator('button').filter({ hasText: /Mumbai/ }).first()
+    if (await mumbaiButton.isVisible({ timeout: 3000 })) {
+      await mumbaiButton.click()
     }
 
     const toInput = page.getByPlaceholder('Destination city')
     await toInput.click()
-    await toInput.fill('Delhi')
-    await page.waitForTimeout(1000) // Wait for API response
+    await toInput.type('Del', { delay: 100 })
+    await page.waitForTimeout(1000)
 
-    // If cities are loaded, click the first one, otherwise continue with typed text
-    const firstToCity = page.locator('button').filter({ hasText: 'Delhi' }).first()
-    if (await firstToCity.isVisible({ timeout: 2000 })) {
-      await firstToCity.click()
+    // Look for and click Delhi in dropdown
+    const delhiButton = page.locator('button').filter({ hasText: /Delhi/ }).first()
+    if (await delhiButton.isVisible({ timeout: 3000 })) {
+      await delhiButton.click()
     }
 
     // Select departure date (tomorrow)
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     const dateString = tomorrow.toISOString().split('T')[0] ?? ''
-    await page.locator('input[type="date"]').fill(dateString)
+    const dateInput = page.locator('input[type="date"]')
+    await dateInput.click()
+    await dateInput.fill(dateString)
+
+    // Wait for form state to update
+    await page.waitForTimeout(500)
 
     // Select number of passengers
     const passengersSelect = page.getByRole('combobox').filter({ hasText: /passenger/i })

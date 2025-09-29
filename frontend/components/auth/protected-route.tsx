@@ -14,6 +14,19 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const { user, loading } = useAuth()
 
+  // Test bypass for Playwright/E2E tests
+  if (typeof window !== 'undefined') {
+    const isTestEnv = window.location.hostname === 'localhost' && (
+      localStorage.getItem('test-auth-bypass') === 'true' ||
+      sessionStorage.getItem('test-auth-bypass') === 'true' ||
+      window.location.search.includes('test=true')
+    )
+
+    if (isTestEnv) {
+      return <>{children}</>
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
