@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase'
+
 // Core API client and base types
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION || 'v1'
@@ -39,16 +41,32 @@ export class ApiClient {
     }
   }
 
+  private async getAuthHeaders(): Promise<Record<string, string>> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        return {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to get auth token:', error)
+    }
+    return {}
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`
+    const authHeaders = await this.getAuthHeaders()
 
     const config: RequestInit = {
       ...options,
       headers: {
         ...this.defaultHeaders,
+        ...authHeaders,
         ...options.headers,
       },
     }
@@ -189,8 +207,35 @@ export class ApiClient {
     return this.request(`/api/v1/bookings/${bookingId}/can-cancel/${userId}`)
   }
 
-  async generateTicket(bookingId: number): Promise<ApiResponse<{ ticketUrl: string }>> {
-    return this.request(`/api/v1/bookings/${bookingId}/ticket`)
+  async generateTicket(bookingId: number): Promise<void> {
+    const url = `${this.baseURL}/api/v1/bookings/${bookingId}/ticket`
+    const authHeaders = await this.getAuthHeaders()
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...authHeaders,
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate ticket: ${response.statusText}`)
+    }
+
+    // Get the PDF blob
+    const blob = await response.blob()
+
+    // Create download link
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = `ticket-${bookingId}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    // Clean up the URL
+    window.URL.revokeObjectURL(downloadUrl)
   }
 
   async validateBooking(bookingData: any): Promise<ApiResponse<any>> {

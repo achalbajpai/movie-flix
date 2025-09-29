@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { api, BookingResponse } from '@/lib/api'
 
 interface CreateBookingData {
+  userId: string
   busId: string
   scheduleId: number
   seatIds: number[]
@@ -39,6 +40,7 @@ export function useBooking() {
 
     try {
       const response = await api.createBooking({
+        userId: bookingData.userId,
         busId: bookingData.busId,
         scheduleId: bookingData.scheduleId,
         seatIds: bookingData.seatIds,
@@ -67,14 +69,10 @@ export function useBooking() {
     updateState({ loading: true, error: null })
 
     try {
-      const response = await api.getBooking(bookingId)
+      const booking = await api.getBooking(bookingId)
 
-      if (response.success && response.data) {
-        updateState({ loading: false })
-        return response.data
-      } else {
-        throw new Error(response.error?.message || 'Booking not found')
-      }
+      updateState({ loading: false })
+      return booking
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch booking'
       updateState({
@@ -109,11 +107,11 @@ export function useBooking() {
   }, [])
 
   // Cancel booking
-  const cancelBooking = useCallback(async (bookingId: string): Promise<boolean> => {
+  const cancelBooking = useCallback(async (bookingId: string, userId: string): Promise<boolean> => {
     updateState({ loading: true, error: null })
 
     try {
-      const response = await api.cancelBooking(bookingId)
+      const response = await api.cancelBooking(bookingId, userId)
 
       if (response.success) {
         updateState({ loading: false })

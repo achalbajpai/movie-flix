@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/lib/auth-context'
 import { User, Phone, Mail, AlertCircle, IndianRupee } from 'lucide-react'
 
 const passengerSchema = z.object({
@@ -55,11 +56,14 @@ interface PassengerFormProps {
 }
 
 export function PassengerForm({ selectedSeats, onSubmit, loading = false, className }: PassengerFormProps) {
+  const { user } = useAuth()
+
   const {
     control,
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isValid }
   } = useForm<PassengerFormData>({
     resolver: zodResolver(passengerFormSchema),
@@ -76,6 +80,18 @@ export function PassengerForm({ selectedSeats, onSubmit, loading = false, classN
     },
     mode: 'onBlur'
   })
+
+  // Auto-populate contact details from user profile
+  useEffect(() => {
+    if (user) {
+      setValue('contactDetails.email', user.email || '')
+      // Extract name from user metadata if available
+      const userName = user.user_metadata?.full_name || user.user_metadata?.name
+      if (userName) {
+        setValue('passengers.0.name', userName)
+      }
+    }
+  }, [user, setValue])
 
   const watchedPassengers = watch('passengers')
 

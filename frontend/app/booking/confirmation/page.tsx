@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useBooking } from '@/lib/hooks'
 import { BookingResponse } from '@/lib/api'
 import {
@@ -61,9 +62,17 @@ export default function BookingConfirmationPage() {
     }
   }
 
-  const handleDownloadTicket = () => {
-    // TODO: Implement ticket download functionality
-    toast.success('Ticket download functionality will be implemented')
+  const handleDownloadTicket = async () => {
+    if (!bookingId) return
+
+    try {
+      const { api } = await import('@/lib/api/simplified')
+      await api.downloadTicket(bookingId)
+      toast.success('Ticket downloaded successfully')
+    } catch (error) {
+      console.error('Error downloading ticket:', error)
+      toast.error('Failed to download ticket')
+    }
   }
 
   const handleGoHome = () => {
@@ -76,25 +85,28 @@ export default function BookingConfirmationPage() {
 
   if (loading || !booking) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <Card>
-            <CardContent className="p-8">
-              <div className="space-y-4 animate-pulse">
-                <div className="h-8 bg-muted rounded w-64 mx-auto"></div>
-                <div className="h-4 bg-muted rounded w-48 mx-auto"></div>
-                <div className="h-64 bg-muted rounded"></div>
-              </div>
-            </CardContent>
-          </Card>
+      <ProtectedRoute>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <Card>
+              <CardContent className="p-8">
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-8 bg-muted rounded w-64 mx-auto"></div>
+                  <div className="h-4 bg-muted rounded w-48 mx-auto"></div>
+                  <div className="h-64 bg-muted rounded"></div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <ProtectedRoute>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto space-y-6">
         <Card className="border-green-200 bg-green-50">
           <CardContent className="p-8 text-center">
             <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
@@ -145,7 +157,7 @@ export default function BookingConfirmationPage() {
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Route</p>
-                      <p className="font-medium">{booking.bus.route}</p>
+                      <p className="font-medium">{booking.bus?.route || 'Route not available'}</p>
                     </div>
                   </div>
 
@@ -154,12 +166,12 @@ export default function BookingConfirmationPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Journey Date</p>
                       <p className="font-medium">
-                        {new Date(booking.journeyDate).toLocaleDateString('en-IN', {
+                        {booking.journeyDate ? new Date(booking.journeyDate).toLocaleDateString('en-IN', {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric'
-                        })}
+                        }) : 'Date not available'}
                       </p>
                     </div>
                   </div>
@@ -170,7 +182,7 @@ export default function BookingConfirmationPage() {
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Departure Time</p>
-                      <p className="font-medium">{booking.bus.departureTime}</p>
+                      <p className="font-medium">{booking.bus?.departureTime || 'Time not available'}</p>
                     </div>
                   </div>
 
@@ -178,7 +190,7 @@ export default function BookingConfirmationPage() {
                     <Users className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Operator</p>
-                      <p className="font-medium">{booking.bus.operatorName}</p>
+                      <p className="font-medium">{booking.bus?.operatorName || 'Unknown Operator'}</p>
                     </div>
                   </div>
                 </div>
@@ -191,11 +203,11 @@ export default function BookingConfirmationPage() {
               <h3 className="font-semibold">Passenger Information</h3>
 
               <div className="space-y-3">
-                {booking.passengers.map((passenger, index) => (
+                {booking.passengers?.map((passenger, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <Badge variant="outline">
-                        Seat {booking.seats[index]?.seatNo || `${index + 1}`}
+                        Seat {booking.seats?.[index]?.seatNo || `${index + 1}`}
                       </Badge>
                       <div>
                         <p className="font-medium">{passenger.name}</p>
@@ -206,7 +218,7 @@ export default function BookingConfirmationPage() {
                     </div>
                     <div className="flex items-center space-x-1 text-sm font-medium">
                       <IndianRupee className="h-3 w-3" />
-                      {booking.seats[index]?.price || booking.totalAmount / booking.passengers.length}
+                      {booking.seats?.[index]?.price || booking.totalAmount / (booking.passengers?.length || 1)}
                     </div>
                   </div>
                 ))}
@@ -223,7 +235,7 @@ export default function BookingConfirmationPage() {
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">{booking.contactDetails.email}</p>
+                    <p className="font-medium">{booking.contactDetails?.email || 'Not provided'}</p>
                   </div>
                 </div>
 
@@ -231,7 +243,7 @@ export default function BookingConfirmationPage() {
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{booking.contactDetails.phone}</p>
+                    <p className="font-medium">{booking.contactDetails?.phone || 'Not provided'}</p>
                   </div>
                 </div>
               </div>
@@ -244,7 +256,7 @@ export default function BookingConfirmationPage() {
 
               <div className="bg-muted/50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Base Fare ({booking.passengers.length} passenger{booking.passengers.length > 1 ? 's' : ''})</span>
+                  <span>Base Fare ({booking.passengers?.length || 0} passenger{(booking.passengers?.length || 0) > 1 ? 's' : ''})</span>
                   <span>₹{booking.totalAmount}</span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -305,7 +317,8 @@ export default function BookingConfirmationPage() {
             Book Another Trip
           </Button>
         </div>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   )
 }

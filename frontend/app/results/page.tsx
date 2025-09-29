@@ -6,6 +6,7 @@ import { Header } from "@/components/header"
 import { SearchResults } from "@/components/search-results"
 import { FilterSidebar } from "@/components/filter-sidebar"
 import { SearchSummary } from "@/components/search-summary"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 import { useBusSearch } from "@/lib/hooks"
 import { BusSearchParams } from "@/lib/api"
 
@@ -46,42 +47,46 @@ export default function ResultsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 py-6">
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-destructive mb-4">Search Error</h2>
-            <p className="text-muted-foreground mb-6">{error}</p>
-            <button
-              onClick={() => window.history.back()}
-              className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90"
-            >
-              Go Back
-            </button>
-          </div>
-        </main>
-      </div>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-background">
+          <Header />
+          <main className="container mx-auto px-4 py-6">
+            <div className="text-center py-12">
+              <h2 className="text-2xl font-bold text-destructive mb-4">Search Error</h2>
+              <p className="text-muted-foreground mb-6">{error}</p>
+              <button
+                onClick={() => window.history.back()}
+                className="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90"
+              >
+                Go Back
+              </button>
+            </div>
+          </main>
+        </div>
+      </ProtectedRoute>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container mx-auto px-4 py-6">
-        <SearchSummary />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-6">
+          <SearchSummary />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
-          {/* Filter Sidebar */}
-          <div className="lg:col-span-1">
-            <FilterSidebar filters={filters} loading={loading} />
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
+            {/* Filter Sidebar */}
+            <div className="lg:col-span-1">
+              <FilterSidebar filters={filters} loading={loading} />
+            </div>
 
-          {/* Results */}
-          <div className="lg:col-span-3">
-            <SearchResults buses={buses} loading={loading} />
+            {/* Results */}
+            <div className="lg:col-span-3">
+              <SearchResults buses={buses} loading={loading} />
+            </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </ProtectedRoute>
   )
 }

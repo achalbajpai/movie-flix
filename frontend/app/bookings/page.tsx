@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { ProtectedRoute } from '@/components/auth/protected-route'
+import { useAuth } from '@/lib/auth-context'
 import { useBooking } from '@/lib/hooks'
 import { BookingResponse } from '@/lib/api'
-import { DEV_CONFIG } from '@/lib/constants'
 import {
   Calendar,
   MapPin,
@@ -23,7 +24,9 @@ import {
   FileText,
   AlertCircle,
   Loader2,
-  Eye
+  Eye,
+  Home,
+  ChevronRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -31,6 +34,7 @@ type BookingStatus = 'all' | 'confirmed' | 'cancelled' | 'completed'
 
 export default function BookingsPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [bookings, setBookings] = useState<BookingResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -39,14 +43,17 @@ export default function BookingsPage() {
   const { getUserBookings, cancelBooking } = useBooking()
 
   useEffect(() => {
-    fetchUserBookings()
-  }, [])
+    if (user) {
+      fetchUserBookings()
+    }
+  }, [user])
 
   const fetchUserBookings = async () => {
+    if (!user) return
+
     try {
       setLoading(true)
-      // TODO: This should use actual user ID from authentication context
-      const userBookings = await getUserBookings(DEV_CONFIG.MOCK_USER_ID)
+      const userBookings = await getUserBookings(user.id)
       setBookings(userBookings)
     } catch (error) {
       toast.error('Failed to load bookings')
@@ -57,9 +64,9 @@ export default function BookingsPage() {
 
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch =
-      booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.bus.operatorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.bus.route.toLowerCase().includes(searchQuery.toLowerCase())
+      String(booking.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.bus?.operatorName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.bus?.route?.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter
 
@@ -80,6 +87,8 @@ export default function BookingsPage() {
   }
 
   const canCancelBooking = (booking: BookingResponse) => {
+    if (!booking.journeyDate) return false
+
     const journeyDate = new Date(booking.journeyDate)
     const now = new Date()
     const timeDifference = journeyDate.getTime() - now.getTime()
@@ -90,12 +99,12 @@ export default function BookingsPage() {
   }
 
   const handleCancelBooking = async (bookingId: string) => {
-    if (!confirm('Are you sure you want to cancel this booking? Cancellation charges may apply.')) {
+    if (!user || !confirm('Are you sure you want to cancel this booking? Cancellation charges may apply.')) {
       return
     }
 
     try {
-      await cancelBooking(bookingId)
+      await cancelBooking(bookingId, user.id)
       toast.success('Booking cancelled successfully')
       fetchUserBookings() // Refresh the list
     } catch (error) {
@@ -107,44 +116,78 @@ export default function BookingsPage() {
     router.push(`/booking/confirmation?bookingId=${bookingId}`)
   }
 
-  const handleDownloadTicket = (bookingId: string) => {
-    // TODO: Implement ticket download functionality
-    toast.success('Ticket download functionality will be implemented')
+  const handleDownloadTicket = async (bookingId: string) => {
+    try {
+      const { api } = await import('@/lib/api/simplified')
+      await api.downloadTicket(bookingId)
+      toast.success('Ticket downloaded successfully')
+    } catch (error) {
+      console.error('Error downloading ticket:', error)
+      toast.error('Failed to download ticket')
+    }
   }
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold mb-2">My Bookings</h1>
-            <p className="text-muted-foreground">View and manage your bus bookings</p>
-          </div>
+      <ProtectedRoute>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold mb-2">My Bookings</h1>
+              <p className="text-muted-foreground">View and manage your bus bookings</p>
+            </div>
 
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i}>
-                <CardContent className="p-6">
-                  <div className="space-y-4 animate-pulse">
-                    <div className="h-6 bg-muted rounded w-1/3"></div>
-                    <div className="h-4 bg-muted rounded w-1/2"></div>
-                    <div className="h-16 bg-muted rounded"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <div className="space-y-4 animate-pulse">
+                      <div className="h-6 bg-muted rounded w-1/3"></div>
+                      <div className="h-4 bg-muted rounded w-1/2"></div>
+                      <div className="h-16 bg-muted rounded"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto">
+    <ProtectedRoute>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+
+        {/* Breadcrumb Navigation */}
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-6">
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center space-x-1 hover:text-foreground transition-colors"
+          >
+            <Home className="h-4 w-4" />
+            <span>Home</span>
+          </button>
+          <ChevronRight className="h-4 w-4" />
+          <span className="text-foreground font-medium">My Bookings</span>
+        </div>
+
         <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">My Bookings</h1>
-          <p className="text-muted-foreground">View and manage your bus bookings</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold mb-2">My Bookings</h1>
+              <p className="text-muted-foreground">View and manage your bus bookings</p>
+            </div>
+            <Button
+              onClick={() => router.push('/')}
+              className="flex items-center gap-2"
+            >
+              <Search className="h-4 w-4" />
+              Search New Bus
+            </Button>
+          </div>
         </div>
 
         <Card className="mb-6">
@@ -206,7 +249,7 @@ export default function BookingsPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="font-semibold text-lg">{booking.bus.operatorName}</h3>
+                            <h3 className="font-semibold text-lg">{booking.bus?.operatorName || 'Unknown Operator'}</h3>
                             <Badge className={getStatusColor(booking.status)}>
                               {booking.status}
                             </Badge>
@@ -221,7 +264,7 @@ export default function BookingsPage() {
                         <div className="flex items-center space-x-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm font-medium">{booking.bus.route}</p>
+                            <p className="text-sm font-medium">{booking.bus?.route || 'Route not available'}</p>
                             <p className="text-xs text-muted-foreground">Route</p>
                           </div>
                         </div>
@@ -230,7 +273,7 @@ export default function BookingsPage() {
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm font-medium">
-                              {new Date(booking.journeyDate).toLocaleDateString('en-IN')}
+                              {booking.journeyDate ? new Date(booking.journeyDate).toLocaleDateString('en-IN') : 'Date not available'}
                             </p>
                             <p className="text-xs text-muted-foreground">Journey Date</p>
                           </div>
@@ -239,7 +282,7 @@ export default function BookingsPage() {
                         <div className="flex items-center space-x-2">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm font-medium">{booking.bus.departureTime}</p>
+                            <p className="text-sm font-medium">{booking.bus?.departureTime || 'Time not available'}</p>
                             <p className="text-xs text-muted-foreground">Departure</p>
                           </div>
                         </div>
@@ -250,11 +293,11 @@ export default function BookingsPage() {
                           <div className="flex items-center space-x-1">
                             <Users className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">
-                              {booking.passengers.length} passenger{booking.passengers.length > 1 ? 's' : ''}
+                              {booking.passengers?.length || 0} passenger{(booking.passengers?.length || 0) > 1 ? 's' : ''}
                             </span>
                           </div>
                           <div className="text-sm">
-                            Seats: {booking.seats.map(seat => seat.seatNo).join(', ')}
+                            Seats: {booking.seats?.map(seat => seat.seatNo).join(', ') || 'No seats'}
                           </div>
                         </div>
                       </div>
@@ -333,7 +376,8 @@ export default function BookingsPage() {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   )
 }

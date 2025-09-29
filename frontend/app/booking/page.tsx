@@ -8,9 +8,11 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { SeatMap } from '@/components/seat-map'
 import { PassengerForm, PassengerDetails, ContactDetails } from '@/components/passenger-form'
+import { ProtectedRoute } from '@/components/auth/protected-route'
+import { useAuth } from '@/lib/auth-context'
 import { useBooking } from '@/lib/hooks'
 import { Bus, api } from '@/lib/api'
-import { DEV_CONFIG, ERROR_MESSAGES } from '@/lib/constants'
+import { ERROR_MESSAGES } from '@/lib/constants'
 import { ArrowLeft, MapPin, Clock, Users, Star } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,6 +25,7 @@ interface SelectedSeat {
 export default function BookingPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { user } = useAuth()
   const [bus, setBus] = useState<Bus | null>(null)
   const [loading, setBusLoading] = useState(true)
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([])
@@ -123,7 +126,7 @@ export default function BookingPage() {
   }
 
   const handleBookingSubmit = async (passengers: PassengerDetails[], contactDetails: ContactDetails) => {
-    if (!bus) {
+    if (!bus || !user) {
       toast.error('Missing booking information')
       return
     }
@@ -133,6 +136,7 @@ export default function BookingPage() {
 
     try {
       const bookingData = {
+        userId: user.id,
         busId: bus.id,
         scheduleId: actualScheduleId,
         seatIds: selectedSeats.map(seat => seat.seatId),
@@ -163,25 +167,28 @@ export default function BookingPage() {
 
   if (loading || !bus) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-4">
-          <div className="h-8 bg-muted rounded w-48 animate-pulse"></div>
-          <Card>
-            <CardContent className="p-8">
-              <div className="space-y-4 animate-pulse">
-                <div className="h-6 bg-muted rounded w-1/3"></div>
-                <div className="h-4 bg-muted rounded w-1/2"></div>
-                <div className="h-64 bg-muted rounded"></div>
-              </div>
-            </CardContent>
-          </Card>
+      <ProtectedRoute>
+        <div className="container mx-auto px-4 py-8">
+          <div className="space-y-4">
+            <div className="h-8 bg-muted rounded w-48 animate-pulse"></div>
+            <Card>
+              <CardContent className="p-8">
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-6 bg-muted rounded w-1/3"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                  <div className="h-64 bg-muted rounded"></div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </ProtectedRoute>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <ProtectedRoute>
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <Button
           variant="ghost"
@@ -284,10 +291,10 @@ export default function BookingPage() {
 
       {currentStep === 'seat-selection' && (
         <div className="space-y-6">
-          {bus && bus.id ? (
+          {bus && bus.id && user ? (
             <SeatMap
               scheduleId={parseInt(bus.id)} // Use bus.id as scheduleId since it's actually the schedule_id
-              userId={DEV_CONFIG.MOCK_USER_ID} // TODO: Get from auth context when implemented
+              userId={user.id}
               onSeatSelectionChange={handleSeatSelectionChange}
             />
           ) : (
@@ -353,6 +360,7 @@ export default function BookingPage() {
           />
         </div>
       )}
-    </div>
+      </div>
+    </ProtectedRoute>
   )
 }
