@@ -34,7 +34,7 @@ test.describe('Bus Search Flow', () => {
     // Select departure date (tomorrow)
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
-    const dateString = tomorrow.toISOString().split('T')[0]
+    const dateString = tomorrow.toISOString().split('T')[0] ?? ''
     await page.locator('input[type="date"]').fill(dateString)
 
     // Select number of passengers
