@@ -110,7 +110,8 @@ export const createApp = (): Application => {
     cityController: container.cityController,
     healthController: container.healthController,
     bookingController: container.bookingController,
-    seatController: container.seatController
+    seatController: container.seatController,
+    authController: container.authController
   }))
 
   // Welcome route

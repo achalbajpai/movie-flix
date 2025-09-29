@@ -25,7 +25,8 @@ import {
   createCityController,
   createHealthController,
   createBookingController,
-  createSeatController
+  createSeatController,
+  createAuthController
 } from '@/controllers'
 
 // Container interface for type safety
@@ -48,6 +49,7 @@ export interface Container {
   healthController: ReturnType<typeof createHealthController>
   bookingController: ReturnType<typeof createBookingController>
   seatController: ReturnType<typeof createSeatController>
+  authController: ReturnType<typeof createAuthController>
 }
 
 export const createContainer = (): Container => {
@@ -69,6 +71,7 @@ export const createContainer = (): Container => {
   const healthController = createHealthController()
   const bookingController = createBookingController(bookingService)
   const seatController = createSeatController(seatService)
+  const authController = createAuthController()
 
   return {
     // Repositories
@@ -88,7 +91,8 @@ export const createContainer = (): Container => {
     cityController,
     healthController,
     bookingController,
-    seatController
+    seatController,
+    authController
   }
 }
 

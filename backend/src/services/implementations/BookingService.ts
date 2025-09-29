@@ -1,4 +1,5 @@
 import { logger } from '@/config'
+import { TicketService, TicketData } from '../TicketService'
 import {
   IBookingService,
   IBookingRepository,
@@ -375,14 +376,31 @@ export class BookingService implements IBookingService {
     return `BK${bookingId.toString().padStart(6, '0')}`
   }
 
-  async generateTicket(bookingId: number): Promise<string> {
+  async generateTicket(bookingId: number): Promise<Buffer> {
     try {
       const booking = await this.bookingRepository.findById(bookingId)
       if (!booking) throw new Error('Booking not found')
 
-      // In a real implementation, this would generate a PDF ticket
-      // For now, return a simple ticket URL
-      return `/api/v1/bookings/${bookingId}/ticket`
+      // Prepare ticket data
+      const ticketData: TicketData = {
+        bookingId: this.generateBookingReference(bookingId),
+        passengerName: booking.passengers?.[0]?.pass_name || 'Passenger',
+        busOperator: booking.schedule?.operator?.company || 'Bus Operator',
+        route: `${booking.schedule?.route?.source_des || 'Source'} to ${booking.schedule?.route?.drop_des || 'Destination'}`,
+        departureTime: booking.schedule?.departure || 'N/A',
+        arrivalTime: booking.schedule?.arrival || 'N/A',
+        journeyDate: booking.schedule?.departure ? new Date(booking.schedule.departure).toLocaleDateString() : 'N/A',
+        seatNumbers: booking.passengers?.map(passenger => passenger.seat_no) || [],
+        totalAmount: booking.total_amt || 0,
+        contactEmail: booking.contactDetails?.email || '',
+        contactPhone: booking.contactDetails?.phone || ''
+      }
+
+      // Generate PDF ticket
+      const pdfBuffer = TicketService.generateTicketPDF(ticketData)
+
+      logger.info('Ticket generated successfully', { bookingId })
+      return pdfBuffer
 
     } catch (error) {
       logger.error('Error generating ticket', { error: (error as Error).message, bookingId })

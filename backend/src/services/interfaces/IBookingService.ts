@@ -48,7 +48,7 @@ export interface IBookingService {
   generateBookingReference(bookingId: number): string
 
   // Ticket operations
-  generateTicket(bookingId: number): Promise<string> // Returns ticket URL or content
+  generateTicket(bookingId: number): Promise<Buffer> // Returns ticket PDF buffer
   sendBookingConfirmation(bookingId: number): Promise<void>
   sendCancellationNotification(bookingId: number): Promise<void>
 }

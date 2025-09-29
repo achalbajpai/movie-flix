@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { createBusController } from '@/controllers'
-import { sanitizeRequest } from '@/middleware'
+import { sanitizeRequest, authenticateUser } from '@/middleware'
 
 export const createBusRoutes = (busController: ReturnType<typeof createBusController>): Router => {
   const router = Router()
@@ -8,8 +8,8 @@ export const createBusRoutes = (busController: ReturnType<typeof createBusContro
   // Apply sanitization middleware to all routes
   router.use(sanitizeRequest)
 
-  // Bus search
-  router.get('/search', busController.searchBuses)
+  // Bus search - require authentication as per user requirement
+  router.get('/search', authenticateUser, busController.searchBuses)
 
   // Bus statistics
   router.get('/stats', busController.getBusStatistics)
