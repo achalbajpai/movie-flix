@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Backend API service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bus-booking-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    env_file:
+      - ./backend/.env.production
+    networks:
+      - bus-booking-network
+    volumes:
+      - backend-logs:/app/logs
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').request({hostname:'localhost',port:3001,path:'/health',timeout:2000},(r)=>{if(r.statusCode!==200)process.exit(1)}).on('error',()=>process.exit(1)).end()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: bus-booking-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.local.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - bus-booking-network
+    restart: unless-stopped
+
+  # Watchtower for automatic updates (optional for production)
+  watchtower:
+    image: containrrr/watchtower
+    container_name: bus-booking-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=3600
+      - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_NOTIFICATIONS=slack
+      - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=${SLACK_WEBHOOK_URL:-}
+    networks:
+      - bus-booking-network
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.1'
+
+networks:
+  bus-booking-network:
+    driver: bridge
+    name: bus-booking-network
+
+volumes:
+  backend-logs:
+    name: bus-booking-backend-logs
+  nginx-logs:
+    name: bus-booking-nginx-logs
