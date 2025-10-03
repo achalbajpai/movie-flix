@@ -119,6 +119,9 @@ storybook-static/
 .cache/
 .parcel-cache/
 
+# Project specific
+new/
+
 # Local Netlify folder
 .netlify
 
