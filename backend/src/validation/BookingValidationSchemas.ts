@@ -26,7 +26,7 @@ export const BookingStatusParamSchema = z.object({
 })
 
 export const ScheduleIdParamSchema = z.object({
-  scheduleId: z.string().regex(/^\d+$/, 'Invalid schedule ID').transform(Number)
+  showId: z.string().regex(/^\d+$/, 'Invalid show ID').transform(Number)
 })
 
 export const DateRangeQuerySchema = z.object({
@@ -69,7 +69,7 @@ export const bookingValidationSchemas = {
   // Parameter validations
   bookingId: BookingIdParamSchema,
   userId: UserIdParamSchema,
-  scheduleId: ScheduleIdParamSchema,
+  showId: ScheduleIdParamSchema,
   bookingReference: BookingReferenceParamSchema,
   bookingStatusParam: BookingStatusParamSchema,
   seatId: SeatIdParamSchema,

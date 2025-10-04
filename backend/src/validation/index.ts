@@ -1,6 +1,7 @@
 export * from './types'
 export * from './ValidationFactory'
 export * from './schemas'
+export * from './movieSchemas'
 export * from './registry'
 
 export {

@@ -106,8 +106,10 @@ export const createApp = (): Application => {
 
   // API Routes
   app.use('/', createApiRoutes({
-    busController: container.busController,
-    cityController: container.cityController,
+    movieController: container.movieController,
+    theaterController: container.theaterController,
+    screenController: container.screenController,
+    showController: container.showController,
     healthController: container.healthController,
     bookingController: container.bookingController,
     seatController: container.seatController,
@@ -118,7 +120,7 @@ export const createApp = (): Application => {
   app.get('/', (req, res) => {
     res.json({
       success: true,
-      message: 'Bus Booking System API',
+      message: 'Movie Booking System API',
       version: env.API_VERSION,
       environment: env.NODE_ENV,
       timestamp: new Date().toISOString(),

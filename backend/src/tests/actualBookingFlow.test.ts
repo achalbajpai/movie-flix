@@ -36,7 +36,10 @@ describe('🎫 Complete Booking Flow Tests with Real Authentication', () => {
 
   beforeAll(async () => {
     app = createApp();
-    futureDate = '2025-09-29';
+    // Set a date 30 days in the future to ensure it's always valid
+    const future = new Date();
+    future.setDate(future.getDate() + 30);
+    futureDate = future.toISOString().split('T')[0];
     testUserId = testUser.user_id;
 
     authToken = 'test-token';

@@ -1,4 +1,4 @@
-// Database types matching Supabase schema
+// Database types matching Supabase schema for Movie Booking System
 
 export interface DatabaseUser {
   user_id: string
@@ -7,247 +7,338 @@ export interface DatabaseUser {
   phone: string | null
   age: number | null
   role: string
+  created_at?: string
+  updated_at?: string
 }
 
-export interface DatabaseOperator {
-  operator_id: number
+export interface DatabaseTheater {
+  theater_id: number
   user_id: string | null
-  company: string
-  verification: boolean
-}
-
-export interface DatabaseBus {
-  bus_id: number
-  operator_id: number | null
-  bus_no: string
-  bus_type: string | null
-  total_seats: number
-}
-
-export interface DatabaseDriver {
-  driver_id: number
-  operator_id: number | null
-  license: string
   name: string
-  phone_no: string | null
-  assigned_stat: string | null
+  location: string
+  address: string | null
+  city: string
+  state: string | null
+  postal_code: string | null
+  phone: string | null
+  email: string | null
+  verification: boolean
+  created_at?: string
+  updated_at?: string
 }
 
-export interface DatabaseRoute {
-  route_id: number
-  source_des: string
-  drop_des: string
-  distance: number | null
-  approx_time: string | null
+export interface DatabaseScreen {
+  screen_id: number
+  theater_id: number
+  screen_name: string
+  screen_number: number
+  total_seats: number
+  screen_type: string // Regular, IMAX, 3D, 4DX, Dolby
+  rows: number
+  columns: number
+  created_at?: string
+  updated_at?: string
 }
 
-export interface DatabaseSchedule {
-  schedule_id: number
-  bus_id: number | null
-  route_id: number | null
-  driver_id: number | null
-  arrival: string
-  departure: string
+export interface DatabaseMovie {
+  movie_id: number
+  title: string
+  description: string | null
+  duration: number // in minutes
+  genre: string
+  language: string
+  rating: string | null // U, UA, A, R, PG-13
+  release_date: string
+  director: string | null
+  actors: string[] | null // Array of actor names
+  poster_url: string | null
+  trailer_url: string | null
+  imdb_rating: number | null
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface DatabaseShow {
+  show_id: number
+  movie_id: number
+  screen_id: number
+  show_time: string
+  end_time: string
   base_price: number
+  show_type: string // Regular, IMAX, 3D, 4DX
+  language: string | null
+  subtitles: string | null
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export interface DatabaseSeat {
   seat_id: number
-  schedule_id: number | null
+  show_id: number | null
   seat_no: string
   is_reserved: boolean
   price: number
+  reservation_expires_at: string | null
+  updated_at?: string
+  booking_id: number | null
+  row_number: string | null // A, B, C, etc.
+  column_number: number | null // 1, 2, 3, etc.
+  seat_type: string // Regular, Premium, Recliner
 }
 
 export interface DatabaseBooking {
   booking_id: number
   user_id: string | null
-  schedule_id: number | null
+  show_id: number | null
   status: string | null
   price: number | null
   total_amt: number | null
+  created_at?: string
+  updated_at?: string
 }
 
 export interface DatabaseBookingSeat {
   booking_id: number
   seat_id: number
-  booking_s_id: string | null
-  pass_name: string | null
-  pass_age: number | null
+  ticket_id: string | null
+  customer_name: string | null
+  customer_age: number | null
   gender: string | null
+  customer_email: string | null
+  customer_phone: string | null
+}
+
+export interface DatabaseSeatReservation {
+  reservation_id: string
+  show_id: number
+  seat_ids: number[]
+  user_id: string
+  expires_at: string
+  created_at?: string
 }
 
 // Extended types for API responses with joined data
-export interface BusWithDetails extends DatabaseBus {
-  operator?: DatabaseOperator
-  schedules?: ScheduleWithDetails[]
+export interface TheaterWithDetails extends DatabaseTheater {
+  screens?: DatabaseScreen[]
 }
 
-export interface ScheduleWithDetails extends DatabaseSchedule {
-  bus?: DatabaseBus
-  route?: DatabaseRoute
-  driver?: DatabaseDriver
+export interface ScreenWithDetails extends DatabaseScreen {
+  theater?: DatabaseTheater
+}
+
+export interface MovieWithDetails extends DatabaseMovie {
+  shows?: ShowWithDetails[]
+}
+
+export interface ShowWithDetails extends DatabaseShow {
+  movie?: DatabaseMovie
+  screen?: ScreenWithDetails
+  theater?: DatabaseTheater
   seats?: DatabaseSeat[]
-  operator?: DatabaseOperator
-}
-
-export interface RouteWithDetails extends DatabaseRoute {
-  schedules?: ScheduleWithDetails[]
+  available_seats?: number
 }
 
 export interface BookingWithDetails extends DatabaseBooking {
   user?: DatabaseUser
-  schedule?: ScheduleWithDetails
+  show?: ShowWithDetails
   booking_seats?: (DatabaseBookingSeat & { seat?: DatabaseSeat })[]
 }
 
 // Search and filter types
-export interface BusSearchFilters {
-  source?: string
-  destination?: string
-  departureDate?: string
-  returnDate?: string
-  passengers?: number
+export interface MovieSearchFilters {
+  city?: string
+  date?: string
+  genre?: string
+  language?: string
+  rating?: string
   priceMin?: number
   priceMax?: number
-  operators?: number[]
-  busTypes?: string[]
-  departureTimeStart?: string
-  departureTimeEnd?: string
+  theaters?: number[]
+  screenTypes?: string[] // IMAX, 3D, 4DX, Regular
+  showTimeStart?: string
+  showTimeEnd?: string
   onlyAvailable?: boolean
 }
 
-export interface BusSearchResult {
-  schedule_id: number
-  bus_id: number
-  operator_id: number
-  bus_no: string
-  bus_type: string | null
-  company: string
-  operator_verification: boolean
-  source_des: string
-  drop_des: string
-  distance: number | null
-  approx_time: string | null
-  departure: string
-  arrival: string
+export interface ShowSearchFilters {
+  movieId?: number
+  theaterId?: number
+  screenId?: number
+  city?: string
+  date?: string
+  timeStart?: string
+  timeEnd?: string
+  screenType?: string
+  onlyAvailable?: boolean
+}
+
+export interface MovieSearchResult {
+  movie_id: number
+  title: string
+  description: string | null
+  duration: number
+  genre: string
+  language: string
+  rating: string | null
+  poster_url: string | null
+  imdb_rating: number | null
+  show_count: number // Number of shows available
+  min_price: number // Lowest price available
+  theaters: string[] // List of theater names showing this movie
+}
+
+export interface ShowSearchResult {
+  show_id: number
+  movie_id: number
+  movie_title: string
+  movie_poster: string | null
+  movie_duration: number
+  movie_genre: string
+  movie_rating: string | null
+  theater_id: number
+  theater_name: string
+  theater_location: string
+  theater_city: string
+  screen_id: number
+  screen_name: string
+  screen_type: string
+  show_time: string
+  end_time: string
   base_price: number
   available_seats: number
   total_seats: number
+  language: string | null
+  subtitles: string | null
 }
 
 // API transformation types (used as response interfaces)
-export interface Bus {
+export interface Movie {
   id: string
-  operatorId: string
-  operatorName: string
-  operatorRating: number
-  routeId: string
-  departureTime: string
-  arrivalTime: string
+  title: string
+  description: string | null
   duration: number
-  price: number
-  availableSeats: number
+  genre: string
+  language: string
+  rating: string | null
+  releaseDate: string
+  director: string | null
+  actors: string[]
+  posterUrl: string | null
+  trailerUrl: string | null
+  imdbRating: number | null
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Theater {
+  id: string
+  name: string
+  location: string
+  address: string | null
+  city: string
+  state: string | null
+  postalCode: string | null
+  phone: string | null
+  email: string | null
+  verification: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Screen {
+  id: string
+  theaterId: string
+  screenName: string
+  screenNumber: number
   totalSeats: number
-  busType: BusType
-  amenities: Amenity[]
-  images: string[]
+  screenType: ScreenType
+  rows: number
+  columns: number
   createdAt: Date
   updatedAt: Date
 }
 
-export interface BusType {
+export interface Show {
   id: string
-  name: string
-  category: 'AC' | 'NON_AC'
-  sleeper: boolean
-  seatingArrangement: string
-  description?: string
+  movieId: string
+  screenId: string
+  showTime: string
+  endTime: string
+  basePrice: number
+  showType: ShowType
+  language: string | null
+  subtitles: string | null
+  isActive: boolean
+  movie?: Movie
+  theater?: Theater
+  screen?: Screen
+  availableSeats?: number
   createdAt: Date
   updatedAt: Date
 }
 
-export interface Amenity {
-  id: string
-  name: string
-  icon: string
-  description?: string
-  category: AmenityCategory
-  createdAt: Date
-  updatedAt: Date
+export enum ScreenType {
+  REGULAR = 'Regular',
+  IMAX = 'IMAX',
+  THREED = '3D',
+  FOURDX = '4DX',
+  DOLBY = 'Dolby'
 }
 
-export enum AmenityCategory {
-  COMFORT = 'comfort',
-  ENTERTAINMENT = 'entertainment',
-  FOOD = 'food',
-  SAFETY = 'safety',
-  CONNECTIVITY = 'connectivity'
+export enum ShowType {
+  REGULAR = 'Regular',
+  IMAX = 'IMAX',
+  THREED = '3D',
+  FOURDX = '4DX',
+  DOLBY = 'Dolby'
 }
 
-export interface City {
-  id: string
-  name: string
-  state: string
-  country: string
-  latitude: number
-  longitude: number
-  createdAt: Date
-  updatedAt: Date
+export enum SeatType {
+  REGULAR = 'Regular',
+  PREMIUM = 'Premium',
+  RECLINER = 'Recliner'
 }
 
-export interface Route {
-  id: string
-  source: City
-  destination: City
-  distance: number
-  estimatedDuration: number
-  createdAt: Date
-  updatedAt: Date
+export enum Genre {
+  ACTION = 'Action',
+  COMEDY = 'Comedy',
+  DRAMA = 'Drama',
+  HORROR = 'Horror',
+  THRILLER = 'Thriller',
+  ROMANCE = 'Romance',
+  SCIFI = 'Sci-Fi',
+  FANTASY = 'Fantasy',
+  ANIMATION = 'Animation',
+  DOCUMENTARY = 'Documentary'
 }
 
-export interface Operator {
-  id: string
-  name: string
-  rating: number
-  totalTrips: number
-  establishedYear: number
-  contact: OperatorContact
-  logo?: string
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface OperatorContact {
-  phone: string
-  email: string
-  website?: string
-  address: {
-    street: string
-    city: string
-    state: string
-    country: string
-    zipCode: string
-  }
+export enum Rating {
+  U = 'U', // Universal
+  UA = 'UA', // Parental Guidance
+  A = 'A', // Adults Only
+  R = 'R', // Restricted
+  PG13 = 'PG-13' // Parental Guidance 13+
 }
 
 // Domain entity for business logic
-export class BusEntity {
+export class ShowEntity {
   constructor(
     public readonly id: string,
-    public readonly operatorId: string,
-    public readonly operatorName: string,
-    public readonly operatorRating: number,
-    public readonly routeId: string,
-    public readonly departureTime: string,
-    public readonly arrivalTime: string,
-    public readonly duration: number,
-    public readonly price: number,
+    public readonly movieId: string,
+    public readonly movieTitle: string,
+    public readonly theaterId: string,
+    public readonly theaterName: string,
+    public readonly screenId: string,
+    public readonly screenType: ScreenType,
+    public readonly showTime: string,
+    public readonly endTime: string,
+    public readonly basePrice: number,
     public readonly availableSeats: number,
     public readonly totalSeats: number,
-    public readonly busType: BusType,
-    public readonly amenities: Amenity[],
-    public readonly images: string[]
+    public readonly language: string | null
   ) {}
 
   public isAvailable(): boolean {
@@ -258,21 +349,49 @@ export class BusEntity {
     return ((this.totalSeats - this.availableSeats) / this.totalSeats) * 100
   }
 
-  public hasAmenity(amenityId: string): boolean {
-    return this.amenities.some(amenity => amenity.id === amenityId)
+  public isPremiumScreen(): boolean {
+    return [ScreenType.IMAX, ScreenType.FOURDX, ScreenType.DOLBY].includes(this.screenType)
   }
 
-  public calculateDurationHours(): number {
-    return Math.floor(this.duration / 60)
+  public isShowTimePassed(): boolean {
+    return new Date(this.showTime) < new Date()
   }
 
-  public calculateDurationMinutes(): number {
-    return this.duration % 60
+  public getShowDate(): string {
+    return new Date(this.showTime).toLocaleDateString()
   }
 
-  public formatDuration(): string {
-    const hours = this.calculateDurationHours()
-    const minutes = this.calculateDurationMinutes()
+  public getShowTimeFormatted(): string {
+    return new Date(this.showTime).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+}
+
+export class MovieEntity {
+  constructor(
+    public readonly id: string,
+    public readonly title: string,
+    public readonly duration: number,
+    public readonly genre: string,
+    public readonly language: string,
+    public readonly rating: string | null,
+    public readonly imdbRating: number | null,
+    public readonly posterUrl: string | null
+  ) {}
+
+  public getDurationFormatted(): string {
+    const hours = Math.floor(this.duration / 60)
+    const minutes = this.duration % 60
     return `${hours}h ${minutes}m`
+  }
+
+  public isHighRated(): boolean {
+    return this.imdbRating !== null && this.imdbRating >= 7.5
+  }
+
+  public getGenreDisplay(): string {
+    return this.genre
   }
 }

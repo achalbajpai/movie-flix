@@ -1,17 +1,19 @@
 import { z } from 'zod'
 
-// Zod schemas for booking validation
-export const PassengerDetailsSchema = z.object({
+// Zod schemas for booking validation - Movie Booking System
+export const CustomerDetailsSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
   age: z.number().min(1, 'Age must be at least 1').max(120, 'Invalid age'),
-  gender: z.enum(['male', 'female', 'other'], { required_error: 'Gender is required' })
+  gender: z.enum(['male', 'female', 'other'], { required_error: 'Gender is required' }),
+  email: z.string().email('Invalid email format').optional(),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits').max(15, 'Phone number too long').optional()
 })
 
 export const CreateBookingSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
-  scheduleId: z.number().int().positive('Invalid schedule ID'),
+  showId: z.number().int().positive('Invalid show ID'),
   seatIds: z.array(z.number().int().positive('Invalid seat ID')).min(1, 'At least one seat must be selected'),
-  passengers: z.array(PassengerDetailsSchema).min(1, 'At least one passenger is required'),
+  customers: z.array(CustomerDetailsSchema).min(1, 'At least one customer is required'),
   contactDetails: z.object({
     email: z.string().email('Invalid email format'),
     phone: z.string().min(10, 'Phone number must be at least 10 digits').max(15, 'Phone number too long')
@@ -20,7 +22,7 @@ export const CreateBookingSchema = z.object({
 
 export const UpdateBookingSchema = z.object({
   status: z.enum(['confirmed', 'cancelled', 'completed', 'refunded']).optional(),
-  passengers: z.array(PassengerDetailsSchema).optional(),
+  customers: z.array(CustomerDetailsSchema).optional(),
   contactDetails: z.object({
     email: z.string().email('Invalid email format'),
     phone: z.string().min(10, 'Phone number must be at least 10 digits').max(15, 'Phone number too long')
@@ -37,7 +39,7 @@ export const BookingQuerySchema = z.object({
 })
 
 export const SeatReservationSchema = z.object({
-  scheduleId: z.number().int().positive('Invalid schedule ID'),
+  showId: z.number().int().positive('Invalid show ID'),
   seatIds: z.array(z.number().int().positive('Invalid seat ID')).min(1, 'At least one seat must be selected'),
   userId: z.string().min(1, 'User ID is required'),
   expiresAt: z.string().datetime().optional() // ISO datetime string
@@ -49,7 +51,7 @@ export const CancelBookingSchema = z.object({
 })
 
 // Type definitions derived from schemas
-export type PassengerDetails = z.infer<typeof PassengerDetailsSchema>
+export type CustomerDetails = z.infer<typeof CustomerDetailsSchema>
 export type CreateBookingRequest = z.infer<typeof CreateBookingSchema>
 export type UpdateBookingRequest = z.infer<typeof UpdateBookingSchema>
 export type BookingQuery = z.infer<typeof BookingQuerySchema>
@@ -60,14 +62,14 @@ export type CancelBookingRequest = z.infer<typeof CancelBookingSchema>
 export interface BookingResponse {
   booking_id: number
   user_id: string
-  schedule_id: number
+  show_id: number
   status: BookingStatus
   price: number
   total_amt: number
   created_at: string
   updated_at: string
-  passengers: BookingSeatWithDetails[]
-  schedule: ScheduleDetails
+  customers: BookingSeatWithDetails[]
+  show: ShowDetails
   contactDetails: {
     email: string
     phone: string
@@ -75,65 +77,81 @@ export interface BookingResponse {
 }
 
 export interface BookingSeatWithDetails {
-  booking_s_id: string
+  ticket_id: string
   seat_id: number
   seat_no: string
-  pass_name: string
-  pass_age: number
+  row_number: string
+  column_number: number
+  customer_name: string
+  customer_age: number
   gender: string
+  customer_email?: string
+  customer_phone?: string
   price: number
+  seat_type: string // Regular, Premium, Recliner
 }
 
-export interface ScheduleDetails {
-  schedule_id: number
-  departure: string
-  arrival: string
+export interface ShowDetails {
+  show_id: number
+  show_time: string
+  end_time: string
   base_price: number
-  bus: {
-    bus_id: number
-    bus_no: string
-    bus_type: string
+  show_type: string // Regular, IMAX, 3D, 4DX
+  language: string | null
+  movie: {
+    movie_id: number
+    title: string
+    description: string | null
+    duration: number
+    genre: string
+    rating: string | null
+    poster_url: string | null
+  }
+  screen: {
+    screen_id: number
+    screen_name: string
+    screen_type: string
     total_seats: number
   }
-  route: {
-    route_id: number
-    source_des: string
-    drop_des: string
-    distance: number
-    approx_time: string
-  }
-  operator: {
-    operator_id: number
-    company: string
-    verification: boolean
+  theater: {
+    theater_id: number
+    name: string
+    location: string
+    city: string
+    address: string | null
   }
 }
 
 export interface SeatDetails {
   seat_id: number
-  schedule_id: number
+  show_id: number
   seat_no: string
+  row_number: string
+  column_number: number
   is_reserved: boolean
   price: number
+  seat_type: string // Regular, Premium, Recliner
   reservation_expires_at?: string
 }
 
 export interface SeatLayout {
   totalSeats: number
+  rows: number
+  columns: number
   layout: SeatLayoutRow[]
-  busType: string
+  screenType: string
 }
 
 export interface SeatLayoutRow {
+  rowLetter: string // A, B, C, etc.
   rowNumber: number
-  leftSeats: SeatDetails[]
-  rightSeats: SeatDetails[]
-  isExit?: boolean
+  seats: SeatDetails[]
+  isAisle?: boolean
 }
 
 export interface SeatReservation {
   reservation_id: string
-  schedule_id: number
+  show_id: number
   seat_ids: number[]
   user_id: string
   expires_at: string
@@ -145,7 +163,8 @@ export interface BookingStatistics {
   totalRevenue: number
   bookingsByStatus: Array<{ status: BookingStatus; count: number }>
   revenueByPeriod: Array<{ period: string; revenue: number }>
-  popularRoutes: Array<{ route: string; bookings: number }>
+  popularMovies: Array<{ movie: string; bookings: number }>
+  popularTheaters: Array<{ theater: string; bookings: number }>
 }
 
 export interface BookingHistory {
@@ -179,10 +198,10 @@ export enum SeatStatus {
 // Business logic types
 export interface CreateBookingData {
   userId: string
-  scheduleId: number
+  showId: number
   seats: Array<{
     seatId: number
-    passenger: PassengerDetails
+    customer: CustomerDetails
   }>
   contactDetails: {
     email: string
@@ -197,15 +216,22 @@ export interface BookingConfirmation {
   totalAmount: number
   seats: Array<{
     seatNo: string
-    passengerName: string
+    rowNumber: string
+    columnNumber: number
+    customerName: string
+    seatType: string
   }>
-  schedule: {
-    departure: string
-    arrival: string
-    route: string
+  show: {
+    showTime: string
+    endTime: string
+    movieTitle: string
+    theaterName: string
+    screenName: string
+    screenType: string
   }
   paymentStatus: string
   ticketUrl?: string
+  qrCode?: string
 }
 
 // Domain entities for business logic
@@ -213,10 +239,10 @@ export class BookingEntity {
   constructor(
     public readonly id: number,
     public readonly userId: string,
-    public readonly scheduleId: number,
+    public readonly showId: number,
     public readonly status: BookingStatus,
     public readonly totalAmount: number,
-    public readonly passengers: PassengerDetails[],
+    public readonly customers: CustomerDetails[],
     public readonly seatNumbers: string[],
     public readonly createdAt: Date,
     public readonly contactDetails: { email: string; phone: string }
@@ -227,14 +253,20 @@ export class BookingEntity {
   }
 
   public isRefundable(): boolean {
-    return this.status === BookingStatus.CANCELLED && this.createdAt > new Date(Date.now() - 24 * 60 * 60 * 1000)
+    // Movie tickets can be refunded up to 2 hours before show time
+    return this.status === BookingStatus.CANCELLED &&
+           this.createdAt > new Date(Date.now() - 2 * 60 * 60 * 1000)
   }
 
   public getBookingReference(): string {
-    return `BK${this.id.toString().padStart(6, '0')}`
+    return `MV${this.id.toString().padStart(6, '0')}`
   }
 
-  public getTotalPassengers(): number {
-    return this.passengers.length
+  public getTotalTickets(): number {
+    return this.customers.length
+  }
+
+  public getPricePerTicket(): number {
+    return this.totalAmount / this.customers.length
   }
 }

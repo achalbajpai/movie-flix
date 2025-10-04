@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { commonValidations } from '@/utils/ValidationHelpers'
 
 export {
-  SearchParamsSchema,
   FilterParamsSchema,
   SortOptionSchema,
   PaginationParamsSchema

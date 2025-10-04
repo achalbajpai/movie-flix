@@ -3,23 +3,24 @@ export * from './BookingModels'
 
 export type {
   DatabaseUser,
-  DatabaseOperator,
-  DatabaseDriver,
-  DatabaseBus,
-  DatabaseRoute,
-  DatabaseSchedule,
+  DatabaseMovie,
+  DatabaseTheater,
+  DatabaseScreen,
+  DatabaseShow,
   DatabaseBooking,
   DatabaseBookingSeat,
   DatabaseSeat,
-  BusSearchResult,
-  Bus,
-  City,
-  BusWithDetails,
-  BusSearchFilters
+  MovieSearchResult,
+  ShowSearchResult,
+  MovieWithDetails,
+  TheaterWithDetails,
+  ShowWithDetails,
+  ShowSearchFilters
 } from './Database'
 
 export {
-  BusEntity
+  ShowEntity,
+  ScreenType
 } from './Database'
 
 // Re-export interfaces for easier imports

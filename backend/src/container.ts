@@ -1,28 +1,38 @@
 import {
-  createSupabaseBusRepository,
-  createSupabaseCityRepository,
+  SupabaseMovieRepository,
+  SupabaseTheaterRepository,
+  SupabaseScreenRepository,
+  SupabaseShowRepository,
   SupabaseBookingRepository,
   SupabaseSeatRepository,
-  IBusRepository,
-  ICityRepository,
+  IMovieRepository,
+  ITheaterRepository,
+  IScreenRepository,
+  IShowRepository,
   IBookingRepository,
   ISeatRepository
 } from '@/repositories'
 
 import {
-  createBusService,
-  createCityService,
+  MovieService,
+  TheaterService,
+  ScreenService,
+  ShowService,
   BookingService,
   SeatService,
-  IBusService,
-  ICityService,
+  IMovieService,
+  ITheaterService,
+  IScreenService,
+  IShowService,
   IBookingService,
   ISeatService
 } from '@/services'
 
 import {
-  createBusController,
-  createCityController,
+  MovieController,
+  TheaterController,
+  ScreenController,
+  ShowController,
   createHealthController,
   createBookingController,
   createSeatController,
@@ -32,20 +42,26 @@ import {
 // Container interface for type safety
 export interface Container {
   // Repositories
-  busRepository: IBusRepository
-  cityRepository: ICityRepository
+  movieRepository: IMovieRepository
+  theaterRepository: ITheaterRepository
+  screenRepository: IScreenRepository
+  showRepository: IShowRepository
   bookingRepository: IBookingRepository
   seatRepository: ISeatRepository
 
   // Services
-  busService: IBusService
-  cityService: ICityService
+  movieService: IMovieService
+  theaterService: ITheaterService
+  screenService: IScreenService
+  showService: IShowService
   bookingService: IBookingService
   seatService: ISeatService
 
   // Controllers
-  busController: ReturnType<typeof createBusController>
-  cityController: ReturnType<typeof createCityController>
+  movieController: MovieController
+  theaterController: TheaterController
+  screenController: ScreenController
+  showController: ShowController
   healthController: ReturnType<typeof createHealthController>
   bookingController: ReturnType<typeof createBookingController>
   seatController: ReturnType<typeof createSeatController>
@@ -54,20 +70,26 @@ export interface Container {
 
 export const createContainer = (): Container => {
   // Repository instances (Data Layer) - Using Supabase for all environments
-  const busRepository = createSupabaseBusRepository()
-  const cityRepository = createSupabaseCityRepository()
+  const movieRepository = new SupabaseMovieRepository()
+  const theaterRepository = new SupabaseTheaterRepository()
+  const screenRepository = new SupabaseScreenRepository()
+  const showRepository = new SupabaseShowRepository()
   const bookingRepository = new SupabaseBookingRepository()
   const seatRepository = new SupabaseSeatRepository()
 
   // Service instances (Business Logic Layer) - Depend on repositories
-  const busService = createBusService(busRepository)
-  const cityService = createCityService(cityRepository)
+  const movieService = new MovieService(movieRepository)
+  const theaterService = new TheaterService(theaterRepository)
+  const screenService = new ScreenService(screenRepository)
+  const showService = new ShowService(showRepository)
   const bookingService = new BookingService(bookingRepository, seatRepository)
   const seatService = new SeatService(seatRepository)
 
   // Controller instances (Presentation Layer) - Depend on services
-  const busController = createBusController(busService)
-  const cityController = createCityController(cityService)
+  const movieController = new MovieController(movieService)
+  const theaterController = new TheaterController(theaterService)
+  const screenController = new ScreenController(screenService)
+  const showController = new ShowController(showService)
   const healthController = createHealthController()
   const bookingController = createBookingController(bookingService)
   const seatController = createSeatController(seatService)
@@ -75,20 +97,26 @@ export const createContainer = (): Container => {
 
   return {
     // Repositories
-    busRepository,
-    cityRepository,
+    movieRepository,
+    theaterRepository,
+    screenRepository,
+    showRepository,
     bookingRepository,
     seatRepository,
 
     // Services
-    busService,
-    cityService,
+    movieService,
+    theaterService,
+    screenService,
+    showService,
     bookingService,
     seatService,
 
     // Controllers
-    busController,
-    cityController,
+    movieController,
+    theaterController,
+    screenController,
+    showController,
     healthController,
     bookingController,
     seatController,
@@ -106,7 +134,6 @@ export const getContainer = (): Container => {
   return containerInstance
 }
 
-// For testing - allows resetting the container
 export const resetContainer = (): void => {
   containerInstance = null
 }

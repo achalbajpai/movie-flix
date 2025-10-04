@@ -1,16 +1,5 @@
 import { createValidationFactory } from './ValidationFactory'
 import {
-  // Bus schemas
-  BusSearchQuerySchema,
-  BusIdParamsSchema,
-  OperatorIdParamsSchema,
-  RouteIdParamsSchema,
-
-  // City schemas
-  CitySearchQuerySchema,
-  CityIdParamsSchema,
-  PopularCitiesQuerySchema,
-
   // Health schemas
   HealthCheckResponseSchema,
   ReadinessCheckResponseSchema,
@@ -23,11 +12,30 @@ import {
   CommonHeadersSchema,
 
   // Legacy schemas
-  SearchParamsSchema,
   FilterParamsSchema,
   SortOptionSchema,
   PaginationParamsSchema
 } from './schemas'
+
+import {
+  // Movie schemas
+  MovieIdParamsSchema,
+  MovieSearchQuerySchema,
+
+  // Theater schemas
+  TheaterIdParamsSchema,
+  CityParamsSchema,
+  TheaterSearchQuerySchema,
+
+  // Screen schemas
+  ScreenIdParamsSchema,
+  ScreenTypeParamsSchema,
+
+  // Show schemas
+  ShowIdParamsSchema,
+  ShowSearchQuerySchema,
+  UpcomingShowsQuerySchema
+} from './movieSchemas'
 
 import { bookingValidationSchemas } from './BookingValidationSchemas'
 import { logger } from '@/config'
@@ -44,16 +52,23 @@ export const validationFactory = createValidationFactory({
 // Schema registration function
 export const registerAllSchemas = (): void => {
   try {
-    // Bus-related schemas
-    validationFactory.registerSchema('busSearchQuery', BusSearchQuerySchema, 'Schema for bus search query parameters')
-    validationFactory.registerSchema('busIdParams', BusIdParamsSchema, 'Schema for bus ID path parameters')
-    validationFactory.registerSchema('operatorIdParams', OperatorIdParamsSchema, 'Schema for operator ID path parameters')
-    validationFactory.registerSchema('routeIdParams', RouteIdParamsSchema, 'Schema for route ID path parameters')
+    // Movie-related schemas
+    validationFactory.registerSchema('movieId', MovieIdParamsSchema, 'Schema for movie ID path parameters')
+    validationFactory.registerSchema('movieSearchQuery', MovieSearchQuerySchema, 'Schema for movie search query parameters')
 
-    // City-related schemas
-    validationFactory.registerSchema('citySearchQuery', CitySearchQuerySchema as any, 'Schema for city search query parameters')
-    validationFactory.registerSchema('cityIdParams', CityIdParamsSchema, 'Schema for city ID path parameters')
-    validationFactory.registerSchema('popularCitiesQuery', PopularCitiesQuerySchema, 'Schema for popular cities query parameters')
+    // Theater-related schemas
+    validationFactory.registerSchema('theaterId', TheaterIdParamsSchema, 'Schema for theater ID path parameters')
+    validationFactory.registerSchema('cityParams', CityParamsSchema, 'Schema for city path parameters')
+    validationFactory.registerSchema('theaterSearchQuery', TheaterSearchQuerySchema, 'Schema for theater search query parameters')
+
+    // Screen-related schemas
+    validationFactory.registerSchema('screenId', ScreenIdParamsSchema, 'Schema for screen ID path parameters')
+    validationFactory.registerSchema('screenType', ScreenTypeParamsSchema, 'Schema for screen type path parameters')
+
+    // Show-related schemas
+    validationFactory.registerSchema('showId', ShowIdParamsSchema, 'Schema for show ID path parameters')
+    validationFactory.registerSchema('showSearchQuery', ShowSearchQuerySchema, 'Schema for show search query parameters')
+    validationFactory.registerSchema('upcomingShowsQuery', UpcomingShowsQuerySchema, 'Schema for upcoming shows query parameters')
 
     // Health check schemas
     validationFactory.registerSchema('healthCheckResponse', HealthCheckResponseSchema, 'Schema for health check response')
@@ -67,7 +82,7 @@ export const registerAllSchemas = (): void => {
     validationFactory.registerSchema('commonHeaders', CommonHeadersSchema, 'Schema for common request headers')
 
     // Legacy schemas for backward compatibility
-    validationFactory.registerSchema('searchParams', SearchParamsSchema, 'Legacy search parameters schema')
+    // Legacy search schema removed - use movie/show specific search schemas instead
     validationFactory.registerSchema('filterParams', FilterParamsSchema, 'Legacy filter parameters schema')
     validationFactory.registerSchema('sortOption', SortOptionSchema, 'Legacy sort option schema')
     validationFactory.registerSchema('paginationParams', PaginationParamsSchema, 'Legacy pagination parameters schema')
@@ -88,16 +103,23 @@ registerAllSchemas()
 
 // Export commonly used validation helpers
 export const validate = {
-  // Bus validations
-  busSearchQuery: (data: unknown) => validationFactory.validate('busSearchQuery', data),
-  busId: (data: unknown) => validationFactory.validate('busIdParams', data),
-  operatorId: (data: unknown) => validationFactory.validate('operatorIdParams', data),
-  routeId: (data: unknown) => validationFactory.validate('routeIdParams', data),
+  // Movie validations
+  movieId: (data: unknown) => validationFactory.validate('movieId', data),
+  movieSearchQuery: (data: unknown) => validationFactory.validate('movieSearchQuery', data),
 
-  // City validations
-  citySearchQuery: (data: unknown) => validationFactory.validate('citySearchQuery', data),
-  cityId: (data: unknown) => validationFactory.validate('cityIdParams', data),
-  popularCitiesQuery: (data: unknown) => validationFactory.validate('popularCitiesQuery', data),
+  // Theater validations
+  theaterId: (data: unknown) => validationFactory.validate('theaterId', data),
+  cityParams: (data: unknown) => validationFactory.validate('cityParams', data),
+  theaterSearchQuery: (data: unknown) => validationFactory.validate('theaterSearchQuery', data),
+
+  // Screen validations
+  screenId: (data: unknown) => validationFactory.validate('screenId', data),
+  screenType: (data: unknown) => validationFactory.validate('screenType', data),
+
+  // Show validations
+  showId: (data: unknown) => validationFactory.validate('showId', data, { strategy: 'safe' }),
+  showSearchQuery: (data: unknown) => validationFactory.validate('showSearchQuery', data),
+  upcomingShowsQuery: (data: unknown) => validationFactory.validate('upcomingShowsQuery', data),
 
   // Generic validations
   pagination: (data: unknown) => validationFactory.validate('pagination', data),
@@ -111,7 +133,6 @@ export const validate = {
   cancelBooking: (data: unknown) => validationFactory.validate('cancelBooking', data, { strategy: 'safe' }),
   bookingId: (data: unknown) => validationFactory.validate('bookingId', data, { strategy: 'safe' }),
   userId: (data: unknown) => validationFactory.validate('userId', data, { strategy: 'safe' }),
-  scheduleId: (data: unknown) => validationFactory.validate('scheduleId', data, { strategy: 'safe' }),
   bookingReference: (data: unknown) => validationFactory.validate('bookingReference', data, { strategy: 'safe' }),
   bookingStatusParam: (data: unknown) => validationFactory.validate('bookingStatusParam', data, { strategy: 'safe' }),
   bookingQuery: (data: unknown) => validationFactory.validate('bookingQuery', data, { strategy: 'safe' }),
@@ -128,16 +149,23 @@ export const validate = {
 
 // Export middleware creators
 export const middleware = {
-  // Bus middleware
-  validateBusSearchQuery: () => validationFactory.createMiddleware('busSearchQuery', 'query'),
-  validateBusId: () => validationFactory.createMiddleware('busIdParams', 'params'),
-  validateOperatorId: () => validationFactory.createMiddleware('operatorIdParams', 'params'),
-  validateRouteId: () => validationFactory.createMiddleware('routeIdParams', 'params'),
+  // Movie middleware
+  validateMovieId: () => validationFactory.createMiddleware('movieId', 'params'),
+  validateMovieSearchQuery: () => validationFactory.createMiddleware('movieSearchQuery', 'query'),
 
-  // City middleware
-  validateCitySearchQuery: () => validationFactory.createMiddleware('citySearchQuery', 'query'),
-  validateCityId: () => validationFactory.createMiddleware('cityIdParams', 'params'),
-  validatePopularCitiesQuery: () => validationFactory.createMiddleware('popularCitiesQuery', 'query'),
+  // Theater middleware
+  validateTheaterId: () => validationFactory.createMiddleware('theaterId', 'params'),
+  validateCityParams: () => validationFactory.createMiddleware('cityParams', 'params'),
+  validateTheaterSearchQuery: () => validationFactory.createMiddleware('theaterSearchQuery', 'query'),
+
+  // Screen middleware
+  validateScreenId: () => validationFactory.createMiddleware('screenId', 'params'),
+  validateScreenType: () => validationFactory.createMiddleware('screenType', 'params'),
+
+  // Show middleware
+  validateShowId: () => validationFactory.createMiddleware('showId', 'params'),
+  validateShowSearchQuery: () => validationFactory.createMiddleware('showSearchQuery', 'query'),
+  validateUpcomingShowsQuery: () => validationFactory.createMiddleware('upcomingShowsQuery', 'query'),
 
   // Generic middleware
   validatePagination: () => validationFactory.createMiddleware('pagination', 'query'),
@@ -147,13 +175,16 @@ export const middleware = {
 }
 
 export const safeValidate = {
-  busSearchQuery: (data: unknown) => validationFactory.validate('busSearchQuery', data, { strategy: 'safe' }),
-  busId: (data: unknown) => validationFactory.validate('busIdParams', data, { strategy: 'safe' }),
-  operatorId: (data: unknown) => validationFactory.validate('operatorIdParams', data, { strategy: 'safe' }),
-  routeId: (data: unknown) => validationFactory.validate('routeIdParams', data, { strategy: 'safe' }),
-  citySearchQuery: (data: unknown) => validationFactory.validate('citySearchQuery', data, { strategy: 'safe' }),
-  cityId: (data: unknown) => validationFactory.validate('cityIdParams', data, { strategy: 'safe' }),
-  popularCitiesQuery: (data: unknown) => validationFactory.validate('popularCitiesQuery', data, { strategy: 'safe' }),
+  movieId: (data: unknown) => validationFactory.validate('movieId', data, { strategy: 'safe' }),
+  movieSearchQuery: (data: unknown) => validationFactory.validate('movieSearchQuery', data, { strategy: 'safe' }),
+  theaterId: (data: unknown) => validationFactory.validate('theaterId', data, { strategy: 'safe' }),
+  cityParams: (data: unknown) => validationFactory.validate('cityParams', data, { strategy: 'safe' }),
+  theaterSearchQuery: (data: unknown) => validationFactory.validate('theaterSearchQuery', data, { strategy: 'safe' }),
+  screenId: (data: unknown) => validationFactory.validate('screenId', data, { strategy: 'safe' }),
+  screenType: (data: unknown) => validationFactory.validate('screenType', data, { strategy: 'safe' }),
+  showId: (data: unknown) => validationFactory.validate('showId', data, { strategy: 'safe' }),
+  showSearchQuery: (data: unknown) => validationFactory.validate('showSearchQuery', data, { strategy: 'safe' }),
+  upcomingShowsQuery: (data: unknown) => validationFactory.validate('upcomingShowsQuery', data, { strategy: 'safe' }),
   pagination: (data: unknown) => validationFactory.validate('pagination', data, { strategy: 'safe' }),
   sort: (data: unknown) => validationFactory.validate('sort', data, { strategy: 'safe' }),
   filter: (data: unknown) => validationFactory.validate('filter', data, { strategy: 'safe' }),
@@ -165,7 +196,6 @@ export const safeValidate = {
   cancelBooking: (data: unknown) => validationFactory.validate('cancelBooking', data, { strategy: 'safe' }),
   bookingId: (data: unknown) => validationFactory.validate('bookingId', data, { strategy: 'safe' }),
   userId: (data: unknown) => validationFactory.validate('userId', data, { strategy: 'safe' }),
-  scheduleId: (data: unknown) => validationFactory.validate('scheduleId', data, { strategy: 'safe' }),
   bookingReference: (data: unknown) => validationFactory.validate('bookingReference', data, { strategy: 'safe' }),
   bookingStatusParam: (data: unknown) => validationFactory.validate('bookingStatusParam', data, { strategy: 'safe' }),
   bookingQuery: (data: unknown) => validationFactory.validate('bookingQuery', data, { strategy: 'safe' }),
@@ -183,3 +213,4 @@ export const safeValidate = {
 export { ValidationFactory, createValidationFactory } from './ValidationFactory'
 export * from './types'
 export * from './schemas'
+export * from './movieSchemas'
