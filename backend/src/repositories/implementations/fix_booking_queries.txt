@@ -1,0 +1,38 @@
+# Old query pattern
+          Booking_seat (
+            booking_s_id,
+            seat_id,
+            pass_name,
+            pass_age,
+            gender,
+            Seat (seat_no, price)
+          ),
+          Schedules (
+            show_id,
+            departure,
+            arrival,
+            base_price,
+            Bus (bus_id, bus_no, bus_type, total_seats, Operator (operator_id, company, verification)),
+            Routes (route_id, source_des, drop_des, distance, approx_time)
+          )
+
+# New query pattern
+          Booking_seat (
+            ticket_id,
+            seat_id,
+            customer_name,
+            customer_age,
+            customer_email,
+            customer_phone,
+            gender,
+            Seat (seat_no, price, seat_type, row_number, column_number)
+          ),
+          Show (
+            show_id,
+            show_time,
+            end_time,
+            base_price,
+            show_type,
+            Movie (movie_id, title, description, duration, genre, rating, poster_url, language),
+            Screen (screen_id, name, screen_type, total_seats, Theater (theater_id, name, location, city, contact_info))
+          )
