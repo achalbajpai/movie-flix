@@ -3,12 +3,12 @@ import { logger } from '@/config/logger'
 
 export interface TicketData {
   bookingId: string
-  passengerName: string
-  busOperator: string
-  route: string
-  departureTime: string
-  arrivalTime: string
-  journeyDate: string
+  customerName: string
+  theaterName: string
+  movieTitle: string
+  showTime: string
+  showDate: string
+  screenName: string
   seatNumbers: string[]
   totalAmount: number
   contactEmail: string
@@ -25,29 +25,29 @@ export class TicketService {
 
       // Header
       doc.setFontSize(20)
-      doc.text('BUS TICKET', 105, 20, { align: 'center' })
+      doc.text('MOVIE TICKET', 105, 20, { align: 'center' })
 
       // Booking ID
       doc.setFontSize(12)
       doc.text(`Booking ID: ${ticketData.bookingId}`, 20, 40)
 
-      // Passenger Information
+      // Customer Information
       doc.setFontSize(14)
-      doc.text('Passenger Information', 20, 60)
+      doc.text('Customer Information', 20, 60)
       doc.setFontSize(10)
-      doc.text(`Name: ${ticketData.passengerName}`, 20, 70)
+      doc.text(`Name: ${ticketData.customerName}`, 20, 70)
       doc.text(`Email: ${ticketData.contactEmail}`, 20, 80)
       doc.text(`Phone: ${ticketData.contactPhone}`, 20, 90)
 
-      // Journey Details
+      // Show Details
       doc.setFontSize(14)
-      doc.text('Journey Details', 20, 110)
+      doc.text('Show Details', 20, 110)
       doc.setFontSize(10)
-      doc.text(`Route: ${ticketData.route}`, 20, 120)
-      doc.text(`Date: ${ticketData.journeyDate}`, 20, 130)
-      doc.text(`Departure: ${ticketData.departureTime}`, 20, 140)
-      doc.text(`Arrival: ${ticketData.arrivalTime}`, 20, 150)
-      doc.text(`Operator: ${ticketData.busOperator}`, 20, 160)
+      doc.text(`Movie: ${ticketData.movieTitle}`, 20, 120)
+      doc.text(`Theater: ${ticketData.theaterName}`, 20, 130)
+      doc.text(`Screen: ${ticketData.screenName}`, 20, 140)
+      doc.text(`Date: ${ticketData.showDate}`, 20, 150)
+      doc.text(`Show Time: ${ticketData.showTime}`, 20, 160)
 
       // Seat Information
       doc.setFontSize(14)

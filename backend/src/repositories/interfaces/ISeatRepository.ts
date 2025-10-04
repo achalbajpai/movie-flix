@@ -8,10 +8,10 @@ import {
 
 export interface ISeatRepository {
   // Seat availability operations
-  findByScheduleId(scheduleId: number): Promise<SeatDetails[]>
-  findAvailableSeats(scheduleId: number): Promise<SeatDetails[]>
-  getSeatLayout(scheduleId: number): Promise<SeatLayout>
-  checkSeatAvailability(scheduleId: number, seatIds: number[]): Promise<boolean>
+  findByShowId(showId: number): Promise<SeatDetails[]>
+  findAvailableSeats(showId: number): Promise<SeatDetails[]>
+  getSeatLayout(showId: number): Promise<SeatLayout>
+  checkSeatAvailability(showId: number, seatIds: number[]): Promise<boolean>
 
   // Seat status management
   updateSeatStatus(seatId: number, status: SeatStatus): Promise<SeatDetails>
@@ -30,17 +30,17 @@ export interface ISeatRepository {
   // Seat queries
   findSeatById(seatId: number): Promise<SeatDetails | null>
   findSeatsByIds(seatIds: number[]): Promise<SeatDetails[]>
-  findSeatByNumber(scheduleId: number, seatNumber: string): Promise<SeatDetails | null>
+  findSeatByNumber(showId: number, seatNumber: string): Promise<SeatDetails | null>
 
   // Seat pricing
-  calculateSeatPrices(scheduleId: number, seatIds: number[]): Promise<number>
+  calculateSeatPrices(showId: number, seatIds: number[]): Promise<number>
   getSeatPrice(seatId: number): Promise<number>
 
   // Booking integration
-  findBookedSeatsBySchedule(scheduleId: number): Promise<SeatDetails[]>
+  findBookedSeatsByShow(showId: number): Promise<SeatDetails[]>
   findSeatsByBookingId(bookingId: number): Promise<SeatDetails[]>
 
   // Analytics
-  getSeatOccupancyRate(scheduleId: number): Promise<number>
-  getPopularSeats(scheduleId: number): Promise<Array<{ seatNo: string; bookingCount: number }>>
+  getSeatOccupancyRate(showId: number): Promise<number>
+  getPopularSeats(showId: number): Promise<Array<{ seatNo: string; bookingCount: number }>>
 }

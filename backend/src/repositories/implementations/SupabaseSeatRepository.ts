@@ -12,19 +12,22 @@ import {
 
 export class SupabaseSeatRepository implements ISeatRepository {
 
-  async findByScheduleId(scheduleId: number): Promise<SeatDetails[]> {
+  async findByShowId(showId: number): Promise<SeatDetails[]> {
     try {
       const { data: seats, error } = await supabase
         .from('Seat')
         .select('*')
-        .eq('schedule_id', scheduleId)
+        .eq('show_id', showId)
         .order('seat_no')
 
       if (error) throw new Error(`Failed to find seats: ${error.message}`)
 
       return seats?.map(seat => ({
         seat_id: seat.seat_id,
-        schedule_id: seat.schedule_id,
+        row_number: seat.row_number,
+        column_number: seat.column_number,
+        seat_type: seat.seat_type,
+        show_id: seat.show_id,
         seat_no: seat.seat_no,
         is_reserved: seat.is_reserved,
         price: seat.price,
@@ -32,17 +35,17 @@ export class SupabaseSeatRepository implements ISeatRepository {
       })) || []
 
     } catch (error) {
-      logger.error('Error finding seats by schedule ID', { error: (error as Error).message, scheduleId })
+      logger.error('Error finding seats by schedule ID', { error: (error as Error).message, showId })
       throw error
     }
   }
 
-  async findAvailableSeats(scheduleId: number): Promise<SeatDetails[]> {
+  async findAvailableSeats(showId: number): Promise<SeatDetails[]> {
     try {
       const { data: seats, error } = await supabase
         .from('Seat')
         .select('*')
-        .eq('schedule_id', scheduleId)
+        .eq('show_id', showId)
         .eq('is_reserved', false)
         .order('seat_no')
 
@@ -50,7 +53,10 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return seats?.map(seat => ({
         seat_id: seat.seat_id,
-        schedule_id: seat.schedule_id,
+        row_number: seat.row_number,
+        column_number: seat.column_number,
+        seat_type: seat.seat_type,
+        show_id: seat.show_id,
         seat_no: seat.seat_no,
         is_reserved: seat.is_reserved,
         price: seat.price,
@@ -58,61 +64,67 @@ export class SupabaseSeatRepository implements ISeatRepository {
       })) || []
 
     } catch (error) {
-      logger.error('Error finding available seats', { error: (error as Error).message, scheduleId })
+      logger.error('Error finding available seats', { error: (error as Error).message, showId })
       throw error
     }
   }
 
-  async getSeatLayout(scheduleId: number): Promise<SeatLayout> {
+  async getSeatLayout(showId: number): Promise<SeatLayout> {
     try {
-      // Get schedule and bus information
-      const { data: schedule, error: scheduleError } = await supabase
-        .from('Schedules')
+      // Get show and screen information
+      const { data: show, error: showError } = await supabase
+        .from('show')
         .select(`
           *,
-          Bus (
-            bus_id,
-            bus_type,
-            total_seats
+          screen (
+            screen_id,
+            screen_type,
+            total_seats,
+            rows,
+            columns
           )
         `)
-        .eq('schedule_id', scheduleId)
+        .eq('show_id', showId)
         .maybeSingle()
 
-      if (scheduleError) throw new Error(`Failed to get schedule: ${scheduleError.message}`)
+      if (showError) throw new Error(`Failed to get show: ${showError.message}`)
 
-      if (!schedule) {
-        throw new Error(`Schedule with ID ${scheduleId} not found`)
+      if (!show) {
+        throw new Error(`Show with ID ${showId} not found`)
       }
 
-      // Get all seats for this schedule
-      const seats = await this.findByScheduleId(scheduleId)
+      // Get all seats for this show
+      const seats = await this.findByShowId(showId)
 
-      // Determine layout based on bus type
-      const busType = schedule.Bus?.bus_type || 'standard'
-      const totalSeats = schedule.Bus?.total_seats || seats.length
+      // Get screen details
+      const screenType = show.Screen?.screen_type || 'Regular'
+      const totalSeats = show.Screen?.total_seats || seats.length
+      const rows = show.Screen?.rows || 10
+      const columns = show.Screen?.columns || 15
 
-      // Create seat layout based on bus type
-      const layout = this.createSeatLayout(seats, busType)
+      // Create seat layout based on screen type
+      const layout = this.createSeatLayout(seats, screenType, rows, columns)
 
       return {
         totalSeats,
+        rows,
+        columns,
         layout,
-        busType
+        screenType
       }
 
     } catch (error) {
-      logger.error('Error getting seat layout', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting seat layout', { error: (error as Error).message, showId })
       throw error
     }
   }
 
-  async checkSeatAvailability(scheduleId: number, seatIds: number[]): Promise<boolean> {
+  async checkSeatAvailability(showId: number, seatIds: number[]): Promise<boolean> {
     try {
       const { data: seats, error } = await supabase
         .from('Seat')
         .select('seat_id, is_reserved, reservation_expires_at')
-        .eq('schedule_id', scheduleId)
+        .eq('show_id', showId)
         .in('seat_id', seatIds)
 
       if (error) throw new Error(`Failed to check seat availability: ${error.message}`)
@@ -134,7 +146,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
       })
 
     } catch (error) {
-      logger.error('Error checking seat availability', { error: (error as Error).message, scheduleId, seatIds })
+      logger.error('Error checking seat availability', { error: (error as Error).message, showId, seatIds })
       throw error
     }
   }
@@ -157,7 +169,10 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return {
         seat_id: seat.seat_id,
-        schedule_id: seat.schedule_id,
+        row_number: seat.row_number,
+        column_number: seat.column_number,
+        seat_type: seat.seat_type,
+        show_id: seat.show_id,
         seat_no: seat.seat_no,
         is_reserved: seat.is_reserved,
         price: seat.price,
@@ -187,7 +202,10 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return seats?.map(seat => ({
         seat_id: seat.seat_id,
-        schedule_id: seat.schedule_id,
+        row_number: seat.row_number,
+        column_number: seat.column_number,
+        seat_type: seat.seat_type,
+        show_id: seat.show_id,
         seat_no: seat.seat_no,
         is_reserved: seat.is_reserved,
         price: seat.price,
@@ -242,7 +260,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
   async createReservation(reservationData: SeatReservationRequest): Promise<SeatReservation> {
     try {
       // Check if seats are available
-      const isAvailable = await this.checkSeatAvailability(reservationData.scheduleId, reservationData.seatIds)
+      const isAvailable = await this.checkSeatAvailability(reservationData.showId, reservationData.seatIds)
       if (!isAvailable) {
         throw new Error('One or more seats are not available')
       }
@@ -255,7 +273,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
         .from('seatreservation')
         .insert({
           reservation_id: reservationId,
-          schedule_id: reservationData.scheduleId,
+          show_id: reservationData.showId,
           seat_ids: reservationData.seatIds,
           user_id: reservationData.userId,
           expires_at: expiresAt
@@ -283,7 +301,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return {
         reservation_id: reservation.reservation_id,
-        schedule_id: reservation.schedule_id,
+        show_id: reservation.show_id,
         seat_ids: reservation.seat_ids,
         user_id: reservation.user_id,
         expires_at: reservation.expires_at,
@@ -311,7 +329,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return {
         reservation_id: reservation.reservation_id,
-        schedule_id: reservation.schedule_id,
+        show_id: reservation.show_id,
         seat_ids: reservation.seat_ids,
         user_id: reservation.user_id,
         expires_at: reservation.expires_at,
@@ -336,7 +354,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return reservations?.map(reservation => ({
         reservation_id: reservation.reservation_id,
-        schedule_id: reservation.schedule_id,
+        show_id: reservation.show_id,
         seat_ids: reservation.seat_ids,
         user_id: reservation.user_id,
         expires_at: reservation.expires_at,
@@ -378,7 +396,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return {
         reservation_id: reservation.reservation_id,
-        schedule_id: reservation.schedule_id,
+        show_id: reservation.show_id,
         seat_ids: reservation.seat_ids,
         user_id: reservation.user_id,
         expires_at: reservation.expires_at,
@@ -466,7 +484,10 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return {
         seat_id: seat.seat_id,
-        schedule_id: seat.schedule_id,
+        row_number: seat.row_number,
+        column_number: seat.column_number,
+        seat_type: seat.seat_type,
+        show_id: seat.show_id,
         seat_no: seat.seat_no,
         is_reserved: seat.is_reserved,
         price: seat.price,
@@ -491,7 +512,10 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return seats?.map(seat => ({
         seat_id: seat.seat_id,
-        schedule_id: seat.schedule_id,
+        row_number: seat.row_number,
+        column_number: seat.column_number,
+        seat_type: seat.seat_type,
+        show_id: seat.show_id,
         seat_no: seat.seat_no,
         is_reserved: seat.is_reserved,
         price: seat.price,
@@ -504,12 +528,12 @@ export class SupabaseSeatRepository implements ISeatRepository {
     }
   }
 
-  async findSeatByNumber(scheduleId: number, seatNumber: string): Promise<SeatDetails | null> {
+  async findSeatByNumber(showId: number, seatNumber: string): Promise<SeatDetails | null> {
     try {
       const { data: seat, error } = await supabase
         .from('Seat')
         .select('*')
-        .eq('schedule_id', scheduleId)
+        .eq('show_id', showId)
         .eq('seat_no', seatNumber)
         .single()
 
@@ -520,7 +544,10 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return {
         seat_id: seat.seat_id,
-        schedule_id: seat.schedule_id,
+        row_number: seat.row_number,
+        column_number: seat.column_number,
+        seat_type: seat.seat_type,
+        show_id: seat.show_id,
         seat_no: seat.seat_no,
         is_reserved: seat.is_reserved,
         price: seat.price,
@@ -528,17 +555,17 @@ export class SupabaseSeatRepository implements ISeatRepository {
       }
 
     } catch (error) {
-      logger.error('Error finding seat by number', { error: (error as Error).message, scheduleId, seatNumber })
+      logger.error('Error finding seat by number', { error: (error as Error).message, showId, seatNumber })
       throw error
     }
   }
 
-  async calculateSeatPrices(scheduleId: number, seatIds: number[]): Promise<number> {
+  async calculateSeatPrices(showId: number, seatIds: number[]): Promise<number> {
     try {
       const { data: seats, error } = await supabase
         .from('Seat')
         .select('price')
-        .eq('schedule_id', scheduleId)
+        .eq('show_id', showId)
         .in('seat_id', seatIds)
 
       if (error) throw new Error(`Failed to calculate seat prices: ${error.message}`)
@@ -546,7 +573,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
       return seats?.reduce((total, seat) => total + (seat.price || 0), 0) || 0
 
     } catch (error) {
-      logger.error('Error calculating seat prices', { error: (error as Error).message, scheduleId, seatIds })
+      logger.error('Error calculating seat prices', { error: (error as Error).message, showId, seatIds })
       throw error
     }
   }
@@ -569,12 +596,12 @@ export class SupabaseSeatRepository implements ISeatRepository {
     }
   }
 
-  async findBookedSeatsBySchedule(scheduleId: number): Promise<SeatDetails[]> {
+  async findBookedSeatsByShow(showId: number): Promise<SeatDetails[]> {
     try {
       const { data: seats, error } = await supabase
         .from('Seat')
         .select('*')
-        .eq('schedule_id', scheduleId)
+        .eq('show_id', showId)
         .eq('is_reserved', true)
         .order('seat_no')
 
@@ -582,7 +609,10 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return seats?.map(seat => ({
         seat_id: seat.seat_id,
-        schedule_id: seat.schedule_id,
+        row_number: seat.row_number,
+        column_number: seat.column_number,
+        seat_type: seat.seat_type,
+        show_id: seat.show_id,
         seat_no: seat.seat_no,
         is_reserved: seat.is_reserved,
         price: seat.price,
@@ -590,7 +620,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
       })) || []
 
     } catch (error) {
-      logger.error('Error finding booked seats by schedule', { error: (error as Error).message, scheduleId })
+      logger.error('Error finding booked seats by schedule', { error: (error as Error).message, showId })
       throw error
     }
   }
@@ -609,7 +639,10 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       return bookingSeats?.map((bs: any) => ({
         seat_id: bs.Seat.seat_id,
-        schedule_id: bs.Seat.schedule_id,
+        row_number: bs.Seat.row_number,
+        column_number: bs.Seat.column_number,
+        seat_type: bs.Seat.seat_type,
+        show_id: bs.Seat.show_id,
         seat_no: bs.Seat.seat_no,
         is_reserved: bs.Seat.is_reserved,
         price: bs.Seat.price,
@@ -622,12 +655,12 @@ export class SupabaseSeatRepository implements ISeatRepository {
     }
   }
 
-  async getSeatOccupancyRate(scheduleId: number): Promise<number> {
+  async getSeatOccupancyRate(showId: number): Promise<number> {
     try {
       const { data: seats, error } = await supabase
         .from('Seat')
         .select('is_reserved')
-        .eq('schedule_id', scheduleId)
+        .eq('show_id', showId)
 
       if (error) throw new Error(`Failed to get seat occupancy rate: ${error.message}`)
 
@@ -637,19 +670,19 @@ export class SupabaseSeatRepository implements ISeatRepository {
       return (bookedSeats / seats.length) * 100
 
     } catch (error) {
-      logger.error('Error getting seat occupancy rate', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting seat occupancy rate', { error: (error as Error).message, showId })
       throw error
     }
   }
 
-  async getPopularSeats(scheduleId: number): Promise<Array<{ seatNo: string; bookingCount: number }>> {
+  async getPopularSeats(showId: number): Promise<Array<{ seatNo: string; bookingCount: number }>> {
     try {
       const { data: seatBookings, error } = await supabase
         .from('Booking_seat')
         .select(`
           Seat (seat_no)
         `)
-        .eq('Booking.schedule_id', scheduleId)
+        .eq('Booking.show_id', showId)
 
       if (error) throw new Error(`Failed to get popular seats: ${error.message}`)
 
@@ -667,57 +700,54 @@ export class SupabaseSeatRepository implements ISeatRepository {
         .sort((a, b) => b.bookingCount - a.bookingCount)
 
     } catch (error) {
-      logger.error('Error getting popular seats', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting popular seats', { error: (error as Error).message, showId })
       throw error
     }
   }
 
-  private createSeatLayout(seats: SeatDetails[], busType: string): SeatLayoutRow[] {
-    // Create layout based on bus type and seat numbers
+  private createSeatLayout(seats: SeatDetails[], screenType: string, rows: number, columns: number): SeatLayoutRow[] {
+    // Create theater-style seat layout
     const layout: SeatLayoutRow[] = []
 
-    // Sort seats by seat number (S1, S2, S3, etc.)
-    const sortedSeats = seats.sort((a, b) => {
-      const numA = parseInt(a.seat_no.replace(/\D/g, ''))
-      const numB = parseInt(b.seat_no.replace(/\D/g, ''))
-      return numA - numB
+    // Group seats by row letter (A, B, C, etc.)
+    const seatsByRow = new Map<string, SeatDetails[]>()
+
+    seats.forEach(seat => {
+      // Extract row letter from seat_no (e.g., A1, B12, etc.)
+      const rowLetter = seat.row_number || seat.seat_no.charAt(0)
+      if (!seatsByRow.has(rowLetter)) {
+        seatsByRow.set(rowLetter, [])
+      }
+      seatsByRow.get(rowLetter)!.push(seat)
     })
 
-    // Determine seats per row based on bus type
-    let seatsPerRow = 4 // Default for regular buses (2+2)
-    if (busType.toLowerCase().includes('sleeper') && busType.includes('2+1')) {
-      seatsPerRow = 3 // Sleeper buses (2+1)
-    }
+    // Create layout rows
+    const rowLetters = Array.from(seatsByRow.keys()).sort()
+    rowLetters.forEach((rowLetter, index) => {
+      const rowSeats = seatsByRow.get(rowLetter) || []
 
-    // Group seats into rows
-    for (let i = 0; i < sortedSeats.length; i += seatsPerRow) {
-      const rowSeats = sortedSeats.slice(i, i + seatsPerRow)
-      const rowNumber = Math.floor(i / seatsPerRow) + 1
+      // Sort seats by column number
+      rowSeats.sort((a, b) => {
+        const colA = a.column_number || parseInt(a.seat_no.replace(/\D/g, ''))
+        const colB = b.column_number || parseInt(b.seat_no.replace(/\D/g, ''))
+        return colA - colB
+      })
 
-      // Determine seat arrangement based on bus type
-      let leftSeats: SeatDetails[] = []
-      let rightSeats: SeatDetails[] = []
+      // Split seats into left and right sections for theater layout
+      // Typically split at middle with an aisle
+      const midPoint = Math.ceil(rowSeats.length / 2)
+      const leftSeats = rowSeats.slice(0, midPoint)
+      const rightSeats = rowSeats.slice(midPoint)
 
-      if (busType.toLowerCase().includes('sleeper') && busType.includes('2+1')) {
-        // Sleeper buses: 2 seats on left, 1 on right
-        leftSeats = rowSeats.slice(0, 2)
-        rightSeats = rowSeats.slice(2, 3)
-      } else {
-        // Regular buses: 2+2 arrangement
-        leftSeats = rowSeats.slice(0, 2)
-        rightSeats = rowSeats.slice(2, 4)
-      }
-
-      // Only add rows that have seats
-      if (leftSeats.length > 0 || rightSeats.length > 0) {
-        layout.push({
-          rowNumber,
-          leftSeats,
-          rightSeats,
-          isExit: rowNumber === Math.ceil(sortedSeats.length / seatsPerRow / 2) // Mark middle row as emergency exit
-        })
-      }
-    }
+      layout.push({
+        rowLetter,
+        rowNumber: index + 1,
+        leftSeats,
+        rightSeats,
+        isExit: index === Math.floor(rows / 2), // Mark middle row as exit
+        seats: rowSeats // Keep for backward compatibility
+      } as any)
+    })
 
     return layout
   }

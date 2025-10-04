@@ -6,61 +6,61 @@ import { validate } from '@/validation'
 import { logger } from '@/config'
 
 export const createSeatController = (seatService: ISeatService) => {
-  const getSeatsBySchedule = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+  const getSeatsByShow = asyncHandler(async (req: Request, res: Response) => {
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
-    const seats = await seatService.getSeatsBySchedule(scheduleId)
+    const seats = await seatService.getSeatsByShow(showId)
 
     return res.json(ResponseBuilder.success(seats, 'Seats retrieved successfully'))
   })
 
   const getAvailableSeats = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
-    if (scheduleId === undefined || scheduleId === null || isNaN(scheduleId)) {
-      throw new Error('Schedule ID is required and must be a valid number')
+    if (showId === undefined || showId === null || isNaN(showId)) {
+      throw new Error('Show ID is required and must be a valid number')
     }
 
-    const seats = await seatService.getAvailableSeats(scheduleId)
+    const seats = await seatService.getAvailableSeats(showId)
 
     return res.json(ResponseBuilder.success(seats, 'Available seats retrieved successfully'))
   })
 
   const getSeatLayout = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      logger.error('Schedule ID validation failed for getSeatLayout', {
+      logger.error('Show ID validation failed for getSeatLayout', {
         errors: validationResult.errors,
         params: req.params
       })
 
       return res.status(400).json(ResponseBuilder.error({
         code: 'VALIDATION_ERROR',
-        message: 'Invalid schedule ID parameter',
+        message: 'Invalid show ID parameter',
         details: validationResult.errors
       }))
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
-    const layout = await seatService.getSeatLayout(scheduleId)
+    const layout = await seatService.getSeatLayout(showId)
 
     return res.json(ResponseBuilder.success(layout, 'Seat layout retrieved successfully'))
   })
 
   const checkSeatAvailability = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
     const seatValidationResult = validate.seatIds(req.body)
     if (!seatValidationResult.success || !seatValidationResult.data) {
@@ -68,17 +68,17 @@ export const createSeatController = (seatService: ISeatService) => {
     }
     const { seatIds } = seatValidationResult.data as any
 
-    const availability = await seatService.checkSeatAvailability(scheduleId, seatIds)
+    const availability = await seatService.checkSeatAvailability(showId, seatIds)
 
     return res.json(ResponseBuilder.success(availability, 'Seat availability checked successfully'))
   })
 
   const calculateSeatPrices = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
     const seatValidationResult = validate.seatIds(req.body)
     if (!seatValidationResult.success || !seatValidationResult.data) {
@@ -86,17 +86,17 @@ export const createSeatController = (seatService: ISeatService) => {
     }
     const { seatIds } = seatValidationResult.data as any
 
-    const pricing = await seatService.calculateSeatPrices(scheduleId, seatIds)
+    const pricing = await seatService.calculateSeatPrices(showId, seatIds)
 
     return res.json(ResponseBuilder.success(pricing, 'Seat prices calculated successfully'))
   })
 
   const validateSeatSelection = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
     const seatValidationResult = validate.seatIds(req.body)
     if (!seatValidationResult.success || !seatValidationResult.data) {
@@ -104,7 +104,7 @@ export const createSeatController = (seatService: ISeatService) => {
     }
     const { seatIds } = seatValidationResult.data as any
 
-    const validation = await seatService.validateSeatSelection(scheduleId, seatIds)
+    const validation = await seatService.validateSeatSelection(showId, seatIds)
 
     return res.json(ResponseBuilder.success(validation, 'Seat selection validated successfully'))
   })
@@ -224,7 +224,7 @@ export const createSeatController = (seatService: ISeatService) => {
   })
 
   const getSeatByNumber = asyncHandler(async (req: Request, res: Response) => {
-    const scheduleValidationResult = validate.scheduleId(req.params)
+    const scheduleValidationResult = validate.showId(req.params)
     if (!scheduleValidationResult.success || !scheduleValidationResult.data) {
       throw new Error('Invalid parameters')
     }
@@ -234,10 +234,10 @@ export const createSeatController = (seatService: ISeatService) => {
       throw new Error('Invalid parameters')
     }
 
-    const { scheduleId } = scheduleValidationResult.data as any
+    const { showId } = scheduleValidationResult.data as any
     const { seatNumber } = seatValidationResult.data as any as any
 
-    const seat = await seatService.getSeatByNumber(scheduleId, seatNumber)
+    const seat = await seatService.getSeatByNumber(showId, seatNumber)
 
     if (!seat) {
       return res.status(404).json(ResponseBuilder.error({
@@ -249,14 +249,14 @@ export const createSeatController = (seatService: ISeatService) => {
     return res.json(ResponseBuilder.success(seat, 'Seat retrieved successfully'))
   })
 
-  const getBookedSeatsBySchedule = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+  const getBookedSeatsByShow = asyncHandler(async (req: Request, res: Response) => {
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
-    const seats = await seatService.getBookedSeatsBySchedule(scheduleId)
+    const seats = await seatService.getBookedSeatsByShow(showId)
 
     return res.json(ResponseBuilder.success(seats, 'Booked seats retrieved successfully'))
   })
@@ -274,37 +274,37 @@ export const createSeatController = (seatService: ISeatService) => {
   })
 
   const getSeatOccupancyRate = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
-    const occupancyRate = await seatService.getSeatOccupancyRate(scheduleId)
+    const occupancyRate = await seatService.getSeatOccupancyRate(showId)
 
     return res.json(ResponseBuilder.success({ occupancyRate }, 'Occupancy rate retrieved successfully'))
   })
 
   const getPopularSeats = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
-    const popularSeats = await seatService.getPopularSeats(scheduleId)
+    const popularSeats = await seatService.getPopularSeats(showId)
 
     return res.json(ResponseBuilder.success(popularSeats, 'Popular seats retrieved successfully'))
   })
 
   const getSeatRevenue = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
-    const revenue = await seatService.getSeatRevenue(scheduleId)
+    const revenue = await seatService.getSeatRevenue(showId)
 
     return res.json(ResponseBuilder.success({ revenue }, 'Seat revenue retrieved successfully'))
   })
@@ -353,19 +353,19 @@ export const createSeatController = (seatService: ISeatService) => {
   })
 
   const validateSeatLayout = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
-    const validation = await seatService.validateSeatLayout(scheduleId)
+    const validation = await seatService.validateSeatLayout(showId)
 
     return res.json(ResponseBuilder.success(validation, 'Seat layout validated successfully'))
   })
 
   return {
-    getSeatsBySchedule,
+    getSeatsByShow,
     getAvailableSeats,
     getSeatLayout,
     checkSeatAvailability,
@@ -380,7 +380,7 @@ export const createSeatController = (seatService: ISeatService) => {
     getSeatById,
     getSeatsByIds,
     getSeatByNumber,
-    getBookedSeatsBySchedule,
+    getBookedSeatsByShow,
     getSeatsByBooking,
     getSeatOccupancyRate,
     getPopularSeats,

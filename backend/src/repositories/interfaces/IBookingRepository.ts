@@ -18,14 +18,14 @@ export interface IBookingRepository {
 
   // Booking queries
   findAll(query?: BookingQuery): Promise<BookingHistory>
-  findByScheduleId(scheduleId: number): Promise<BookingResponse[]>
+  findByShowId(showId: number): Promise<BookingResponse[]>
   findByDateRange(fromDate: string, toDate: string): Promise<BookingResponse[]>
   findByStatus(status: BookingStatus): Promise<BookingResponse[]>
 
   // Statistics and analytics
   getBookingStatistics(): Promise<BookingStatistics>
   getRevenueByPeriod(startDate: string, endDate: string): Promise<Array<{ period: string; revenue: number }>>
-  getPopularRoutes(limit?: number): Promise<Array<{ route: string; bookings: number }>>
+  getPopularMovies(limit?: number): Promise<Array<{ movie: string; bookings: number }>>
 
   // Validation helpers
   checkBookingExists(bookingId: number): Promise<boolean>

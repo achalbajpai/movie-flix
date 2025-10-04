@@ -15,37 +15,37 @@ export class SeatService implements ISeatService {
     private seatRepository: ISeatRepository
   ) {}
 
-  async getSeatsBySchedule(scheduleId: number): Promise<SeatDetails[]> {
+  async getSeatsByShow(showId: number): Promise<SeatDetails[]> {
     try {
-      return await this.seatRepository.findByScheduleId(scheduleId)
+      return await this.seatRepository.findByShowId(showId)
     } catch (error) {
-      logger.error('Error getting seats by schedule', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting seats by schedule', { error: (error as Error).message, showId })
       throw error
     }
   }
 
-  async getAvailableSeats(scheduleId: number): Promise<SeatDetails[]> {
+  async getAvailableSeats(showId: number): Promise<SeatDetails[]> {
     try {
       // Clean up expired reservations first
       await this.seatRepository.cleanupExpiredReservations()
 
-      return await this.seatRepository.findAvailableSeats(scheduleId)
+      return await this.seatRepository.findAvailableSeats(showId)
     } catch (error) {
-      logger.error('Error getting available seats', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting available seats', { error: (error as Error).message, showId })
       throw error
     }
   }
 
-  async getSeatLayout(scheduleId: number): Promise<SeatLayout> {
+  async getSeatLayout(showId: number): Promise<SeatLayout> {
     try {
-      return await this.seatRepository.getSeatLayout(scheduleId)
+      return await this.seatRepository.getSeatLayout(showId)
     } catch (error) {
-      logger.error('Error getting seat layout', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting seat layout', { error: (error as Error).message, showId })
       throw error
     }
   }
 
-  async checkSeatAvailability(scheduleId: number, seatIds: number[]): Promise<{
+  async checkSeatAvailability(showId: number, seatIds: number[]): Promise<{
     available: boolean
     unavailableSeats: number[]
     conflictReason: string[]
@@ -67,7 +67,7 @@ export class SeatService implements ISeatService {
       }
 
       // Check if seats belong to the correct schedule
-      const wrongScheduleSeats = seats.filter(s => s.schedule_id !== scheduleId)
+      const wrongScheduleSeats = seats.filter(s => s.show_id !== showId)
       if (wrongScheduleSeats.length > 0) {
         unavailableSeats.push(...wrongScheduleSeats.map(s => s.seat_id))
         conflictReason.push('Some seats do not belong to this schedule')
@@ -96,12 +96,12 @@ export class SeatService implements ISeatService {
       }
 
     } catch (error) {
-      logger.error('Error checking seat availability', { error: (error as Error).message, scheduleId, seatIds })
+      logger.error('Error checking seat availability', { error: (error as Error).message, showId, seatIds })
       throw error
     }
   }
 
-  async calculateSeatPrices(scheduleId: number, seatIds: number[]): Promise<{
+  async calculateSeatPrices(showId: number, seatIds: number[]): Promise<{
     totalPrice: number
     seatPrices: Array<{ seatId: number; price: number; seatNo: string }>
   }> {
@@ -109,7 +109,7 @@ export class SeatService implements ISeatService {
       const seats = await this.seatRepository.findSeatsByIds(seatIds)
 
       // Filter seats that belong to the correct schedule
-      const validSeats = seats.filter(s => s.schedule_id === scheduleId)
+      const validSeats = seats.filter(s => s.show_id === showId)
 
       const seatPrices = validSeats.map(seat => ({
         seatId: seat.seat_id,
@@ -125,12 +125,12 @@ export class SeatService implements ISeatService {
       }
 
     } catch (error) {
-      logger.error('Error calculating seat prices', { error: (error as Error).message, scheduleId, seatIds })
+      logger.error('Error calculating seat prices', { error: (error as Error).message, showId, seatIds })
       throw error
     }
   }
 
-  async validateSeatSelection(scheduleId: number, seatIds: number[]): Promise<{
+  async validateSeatSelection(showId: number, seatIds: number[]): Promise<{
     valid: boolean
     errors: string[]
     warnings: string[]
@@ -156,14 +156,14 @@ export class SeatService implements ISeatService {
       }
 
       // Check seat availability
-      const availability = await this.checkSeatAvailability(scheduleId, seatIds)
+      const availability = await this.checkSeatAvailability(showId, seatIds)
       if (!availability.available) {
         errors.push(...availability.conflictReason)
       }
 
       // Get seat details for additional validations
       const seats = await this.seatRepository.findSeatsByIds(seatIds)
-      const validSeats = seats.filter(s => s.schedule_id === scheduleId)
+      const validSeats = seats.filter(s => s.show_id === showId)
 
       // Check for mixed bus levels (if applicable) - warning only
       const seatNumbers = validSeats.map(s => s.seat_no)
@@ -198,7 +198,7 @@ export class SeatService implements ISeatService {
       }
 
     } catch (error) {
-      logger.error('Error validating seat selection', { error: (error as Error).message, scheduleId, seatIds })
+      logger.error('Error validating seat selection', { error: (error as Error).message, showId, seatIds })
       return {
         valid: false,
         errors: ['Failed to validate seat selection'],
@@ -210,7 +210,7 @@ export class SeatService implements ISeatService {
   async createSeatReservation(reservationData: SeatReservationRequest): Promise<SeatReservation> {
     try {
       // Validate seat selection first
-      const validation = await this.validateSeatSelection(reservationData.scheduleId, reservationData.seatIds)
+      const validation = await this.validateSeatSelection(reservationData.showId, reservationData.seatIds)
       if (!validation.valid) {
         throw new Error(`Seat selection validation failed: ${validation.errors.join(', ')}`)
       }
@@ -350,20 +350,20 @@ export class SeatService implements ISeatService {
     }
   }
 
-  async getSeatByNumber(scheduleId: number, seatNumber: string): Promise<SeatDetails | null> {
+  async getSeatByNumber(showId: number, seatNumber: string): Promise<SeatDetails | null> {
     try {
-      return await this.seatRepository.findSeatByNumber(scheduleId, seatNumber)
+      return await this.seatRepository.findSeatByNumber(showId, seatNumber)
     } catch (error) {
-      logger.error('Error getting seat by number', { error: (error as Error).message, scheduleId, seatNumber })
+      logger.error('Error getting seat by number', { error: (error as Error).message, showId, seatNumber })
       throw error
     }
   }
 
-  async getBookedSeatsBySchedule(scheduleId: number): Promise<SeatDetails[]> {
+  async getBookedSeatsByShow(showId: number): Promise<SeatDetails[]> {
     try {
-      return await this.seatRepository.findBookedSeatsBySchedule(scheduleId)
+      return await this.seatRepository.findBookedSeatsByShow(showId)
     } catch (error) {
-      logger.error('Error getting booked seats by schedule', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting booked seats by schedule', { error: (error as Error).message, showId })
       throw error
     }
   }
@@ -377,30 +377,30 @@ export class SeatService implements ISeatService {
     }
   }
 
-  async getSeatOccupancyRate(scheduleId: number): Promise<number> {
+  async getSeatOccupancyRate(showId: number): Promise<number> {
     try {
-      return await this.seatRepository.getSeatOccupancyRate(scheduleId)
+      return await this.seatRepository.getSeatOccupancyRate(showId)
     } catch (error) {
-      logger.error('Error getting seat occupancy rate', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting seat occupancy rate', { error: (error as Error).message, showId })
       throw error
     }
   }
 
-  async getPopularSeats(scheduleId: number): Promise<Array<{ seatNo: string; bookingCount: number }>> {
+  async getPopularSeats(showId: number): Promise<Array<{ seatNo: string; bookingCount: number }>> {
     try {
-      return await this.seatRepository.getPopularSeats(scheduleId)
+      return await this.seatRepository.getPopularSeats(showId)
     } catch (error) {
-      logger.error('Error getting popular seats', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting popular seats', { error: (error as Error).message, showId })
       throw error
     }
   }
 
-  async getSeatRevenue(scheduleId: number): Promise<number> {
+  async getSeatRevenue(showId: number): Promise<number> {
     try {
-      const bookedSeats = await this.seatRepository.findBookedSeatsBySchedule(scheduleId)
+      const bookedSeats = await this.seatRepository.findBookedSeatsByShow(showId)
       return bookedSeats.reduce((total, seat) => total + seat.price, 0)
     } catch (error) {
-      logger.error('Error getting seat revenue', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting seat revenue', { error: (error as Error).message, showId })
       throw error
     }
   }
@@ -428,12 +428,12 @@ export class SeatService implements ISeatService {
     }
   }
 
-  async validateSeatLayout(scheduleId: number): Promise<{ valid: boolean; issues: string[] }> {
+  async validateSeatLayout(showId: number): Promise<{ valid: boolean; issues: string[] }> {
     try {
       const issues: string[] = []
 
       // Get all seats for the schedule
-      const seats = await this.seatRepository.findByScheduleId(scheduleId)
+      const seats = await this.seatRepository.findByShowId(showId)
 
       if (seats.length === 0) {
         issues.push('No seats found for this schedule')
@@ -464,7 +464,7 @@ export class SeatService implements ISeatService {
       }
 
     } catch (error) {
-      logger.error('Error validating seat layout', { error: (error as Error).message, scheduleId })
+      logger.error('Error validating seat layout', { error: (error as Error).message, showId })
       return {
         valid: false,
         issues: ['Failed to validate seat layout']
@@ -474,23 +474,23 @@ export class SeatService implements ISeatService {
 
   // Real-time seat updates - simplified implementations
   // In a real implementation, these would integrate with WebSocket/SSE
-  subscribeSeatUpdates(scheduleId: number, callback: (updates: SeatDetails[]) => void): void {
-    logger.info('Subscribed to seat updates', { scheduleId })
+  subscribeSeatUpdates(showId: number, callback: (updates: SeatDetails[]) => void): void {
+    logger.info('Subscribed to seat updates', { showId })
     // Implementation would set up real-time listeners
   }
 
-  unsubscribeSeatUpdates(scheduleId: number): void {
-    logger.info('Unsubscribed from seat updates', { scheduleId })
+  unsubscribeSeatUpdates(showId: number): void {
+    logger.info('Unsubscribed from seat updates', { showId })
     // Implementation would clean up real-time listeners
   }
 
-  async broadcastSeatUpdate(scheduleId: number, seatIds: number[]): Promise<void> {
+  async broadcastSeatUpdate(showId: number, seatIds: number[]): Promise<void> {
     try {
       const updatedSeats = await this.seatRepository.findSeatsByIds(seatIds)
-      logger.info('Broadcasting seat updates', { scheduleId, seatCount: updatedSeats.length })
+      logger.info('Broadcasting seat updates', { showId, seatCount: updatedSeats.length })
       // Implementation would broadcast updates to subscribed clients
     } catch (error) {
-      logger.error('Error broadcasting seat update', { error: (error as Error).message, scheduleId, seatIds })
+      logger.error('Error broadcasting seat update', { error: (error as Error).message, showId, seatIds })
     }
   }
 }

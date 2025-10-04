@@ -32,13 +32,13 @@ export class BookingService implements IBookingService {
 
       // Check seat availability one more time
       const seatIds = bookingData.seats.map(s => s.seatId)
-      const seatAvailability = await this.seatRepository.checkSeatAvailability(bookingData.scheduleId, seatIds)
+      const seatAvailability = await this.seatRepository.checkSeatAvailability(bookingData.showId, seatIds)
       if (!seatAvailability) {
         throw new Error('Selected seats are no longer available')
       }
 
       // Calculate total amount
-      const totalAmount = await this.seatRepository.calculateSeatPrices(bookingData.scheduleId, seatIds)
+      const totalAmount = await this.seatRepository.calculateSeatPrices(bookingData.showId, seatIds)
       const bookingDataWithAmount = { ...bookingData, totalAmount }
 
       // Create the booking
@@ -52,14 +52,20 @@ export class BookingService implements IBookingService {
         bookingId: booking.booking_id,
         bookingReference: this.generateBookingReference(booking.booking_id),
         totalAmount: booking.total_amt,
-        seats: booking.passengers.map((p: any) => ({
-          seatNo: p.seat_no,
-          passengerName: p.pass_name
+        seats: booking.customers.map((c: any) => ({
+          seatNo: c.seat_no,
+          rowNumber: c.row_number || 'A',
+          columnNumber: c.column_number || 1,
+          customerName: c.customer_name,
+          seatType: c.seat_type || 'Regular'
         })),
-        schedule: {
-          departure: booking.schedule.departure,
-          arrival: booking.schedule.arrival,
-          route: `${booking.schedule.route.source_des} to ${booking.schedule.route.drop_des}`
+        show: {
+          showTime: booking.show.show_time,
+          endTime: booking.show.end_time,
+          movieTitle: booking.show.movie?.title || 'Movie',
+          theaterName: booking.show.theater?.name || 'Theater',
+          screenName: booking.show.screen?.screen_name || 'Screen 1',
+          screenType: booking.show.screen?.screen_type || 'Regular'
         },
         paymentStatus: 'confirmed' // In real implementation, this would come from payment gateway
       }
@@ -72,7 +78,7 @@ export class BookingService implements IBookingService {
       logger.info('Booking created successfully', {
         bookingId: booking.booking_id,
         userId: bookingData.userId,
-        scheduleId: bookingData.scheduleId,
+        showId: bookingData.showId,
         seatCount: seatIds.length
       })
 
@@ -162,11 +168,11 @@ export class BookingService implements IBookingService {
     }
   }
 
-  async getBookingsBySchedule(scheduleId: number): Promise<BookingResponse[]> {
+  async getBookingsByShow(showId: number): Promise<BookingResponse[]> {
     try {
-      return await this.bookingRepository.findByScheduleId(scheduleId)
+      return await this.bookingRepository.findByShowId(showId)
     } catch (error) {
-      logger.error('Error getting bookings by schedule', { error: (error as Error).message, scheduleId })
+      logger.error('Error getting bookings by show', { error: (error as Error).message, showId })
       throw error
     }
   }
@@ -230,7 +236,7 @@ export class BookingService implements IBookingService {
 
       // Check seat availability
       const seatIds = bookingData.seats.map(s => s.seatId)
-      const seatsAvailable = await this.seatRepository.checkSeatAvailability(bookingData.scheduleId, seatIds)
+      const seatsAvailable = await this.seatRepository.checkSeatAvailability(bookingData.showId, seatIds)
       if (!seatsAvailable) {
         errors.push('One or more selected seats are not available')
       }
@@ -240,21 +246,21 @@ export class BookingService implements IBookingService {
         errors.push('At least one seat must be selected')
       }
 
-      // Validate passenger details
+      // Validate customer details
       for (const seat of bookingData.seats) {
-        if (!seat.passenger.name || seat.passenger.name.trim().length === 0) {
-          errors.push('Passenger name is required for all seats')
+        if (!seat.customer.name || seat.customer.name.trim().length === 0) {
+          errors.push('Customer name is required for all seats')
         }
-        if (!seat.passenger.age || seat.passenger.age < 1 || seat.passenger.age > 120) {
-          errors.push('Valid passenger age is required for all seats')
+        if (!seat.customer.age || seat.customer.age < 1 || seat.customer.age > 120) {
+          errors.push('Valid customer age is required for all seats')
         }
       }
 
-      // Check for duplicate passengers (warning)
-      const passengerNames = bookingData.seats.map(s => s.passenger.name.toLowerCase().trim())
-      const uniqueNames = new Set(passengerNames)
-      if (uniqueNames.size !== passengerNames.length) {
-        warnings.push('Multiple seats booked for passengers with similar names')
+      // Check for duplicate customers (warning)
+      const customerNames = bookingData.seats.map(s => s.customer.name.toLowerCase().trim())
+      const uniqueNames = new Set(customerNames)
+      if (uniqueNames.size !== customerNames.length) {
+        warnings.push('Multiple seats booked for customers with similar names')
       }
 
       // Validate contact details
@@ -298,12 +304,12 @@ export class BookingService implements IBookingService {
       // Check if booking status allows cancellation
       if (booking.status !== 'confirmed' && booking.status !== 'pending') return false
 
-      // Check if departure is at least 2 hours away
-      const departure = new Date(booking.schedule.departure)
+      // Check if show time is at least 2 hours away
+      const showTime = new Date(booking.show.show_time)
       const now = new Date()
-      const hoursUntilDeparture = (departure.getTime() - now.getTime()) / (1000 * 60 * 60)
+      const hoursUntilShow = (showTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-      return hoursUntilDeparture >= 2
+      return hoursUntilShow >= 2
 
     } catch (error) {
       logger.error('Error checking if booking can be cancelled', { error: (error as Error).message, bookingId, userId })
@@ -316,14 +322,14 @@ export class BookingService implements IBookingService {
       const booking = await this.bookingRepository.findById(bookingId)
       if (!booking) return 0
 
-      const departure = new Date(booking.schedule.departure)
+      const showTime = new Date(booking.show.show_time)
       const now = new Date()
-      const hoursUntilDeparture = (departure.getTime() - now.getTime()) / (1000 * 60 * 60)
+      const hoursUntilShow = (showTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
       // Simple refund policy - full refund if >24 hours, 50% if >2 hours, 0% otherwise
-      if (hoursUntilDeparture >= 24) {
+      if (hoursUntilShow >= 24) {
         return booking.total_amt
-      } else if (hoursUntilDeparture >= 2) {
+      } else if (hoursUntilShow >= 2) {
         return booking.total_amt * 0.5
       } else {
         return 0
@@ -353,11 +359,11 @@ export class BookingService implements IBookingService {
     }
   }
 
-  async getPopularRoutes(limit?: number): Promise<Array<{ route: string; bookings: number }>> {
+  async getPopularMovies(limit?: number): Promise<Array<{ movie: string; bookings: number }>> {
     try {
-      return await this.bookingRepository.getPopularRoutes(limit)
+      return await this.bookingRepository.getPopularMovies(limit)
     } catch (error) {
-      logger.error('Error getting popular routes', { error: (error as Error).message, limit })
+      logger.error('Error getting popular movies', { error: (error as Error).message, limit })
       throw error
     }
   }
@@ -384,13 +390,13 @@ export class BookingService implements IBookingService {
       // Prepare ticket data
       const ticketData: TicketData = {
         bookingId: this.generateBookingReference(bookingId),
-        passengerName: booking.passengers?.[0]?.pass_name || 'Passenger',
-        busOperator: booking.schedule?.operator?.company || 'Bus Operator',
-        route: `${booking.schedule?.route?.source_des || 'Source'} to ${booking.schedule?.route?.drop_des || 'Destination'}`,
-        departureTime: booking.schedule?.departure || 'N/A',
-        arrivalTime: booking.schedule?.arrival || 'N/A',
-        journeyDate: booking.schedule?.departure ? new Date(booking.schedule.departure).toLocaleDateString() : 'N/A',
-        seatNumbers: booking.passengers?.map(passenger => passenger.seat_no) || [],
+        customerName: booking.customers?.[0]?.customer_name || 'Customer',
+        theaterName: booking.show?.theater?.name || 'Theater',
+        movieTitle: booking.show?.movie?.title || 'Movie',
+        showTime: booking.show?.show_time || 'N/A',
+        showDate: booking.show?.show_time ? new Date(booking.show.show_time).toLocaleDateString() : 'N/A',
+        screenName: booking.show?.screen?.screen_name || 'Screen',
+        seatNumbers: booking.customers?.map(customer => customer.seat_no) || [],
         totalAmount: booking.total_amt || 0,
         contactEmail: booking.contactDetails?.email || '',
         contactPhone: booking.contactDetails?.phone || ''

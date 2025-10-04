@@ -8,21 +8,21 @@ import {
 
 export interface ISeatService {
   // Seat availability operations
-  getSeatsBySchedule(scheduleId: number): Promise<SeatDetails[]>
-  getAvailableSeats(scheduleId: number): Promise<SeatDetails[]>
-  getSeatLayout(scheduleId: number): Promise<SeatLayout>
-  checkSeatAvailability(scheduleId: number, seatIds: number[]): Promise<{
+  getSeatsByShow(showId: number): Promise<SeatDetails[]>
+  getAvailableSeats(showId: number): Promise<SeatDetails[]>
+  getSeatLayout(showId: number): Promise<SeatLayout>
+  checkSeatAvailability(showId: number, seatIds: number[]): Promise<{
     available: boolean
     unavailableSeats: number[]
     conflictReason: string[]
   }>
 
   // Seat selection and pricing
-  calculateSeatPrices(scheduleId: number, seatIds: number[]): Promise<{
+  calculateSeatPrices(showId: number, seatIds: number[]): Promise<{
     totalPrice: number
     seatPrices: Array<{ seatId: number; price: number; seatNo: string }>
   }>
-  validateSeatSelection(scheduleId: number, seatIds: number[]): Promise<{
+  validateSeatSelection(showId: number, seatIds: number[]): Promise<{
     valid: boolean
     errors: string[]
     warnings: string[]
@@ -45,21 +45,21 @@ export interface ISeatService {
   // Seat queries
   getSeatById(seatId: number): Promise<SeatDetails | null>
   getSeatsByIds(seatIds: number[]): Promise<SeatDetails[]>
-  getSeatByNumber(scheduleId: number, seatNumber: string): Promise<SeatDetails | null>
-  getBookedSeatsBySchedule(scheduleId: number): Promise<SeatDetails[]>
+  getSeatByNumber(showId: number, seatNumber: string): Promise<SeatDetails | null>
+  getBookedSeatsByShow(showId: number): Promise<SeatDetails[]>
   getSeatsByBooking(bookingId: number): Promise<SeatDetails[]>
 
   // Seat analytics and insights
-  getSeatOccupancyRate(scheduleId: number): Promise<number>
-  getPopularSeats(scheduleId: number): Promise<Array<{ seatNo: string; bookingCount: number }>>
-  getSeatRevenue(scheduleId: number): Promise<number>
+  getSeatOccupancyRate(showId: number): Promise<number>
+  getPopularSeats(showId: number): Promise<Array<{ seatNo: string; bookingCount: number }>>
+  getSeatRevenue(showId: number): Promise<number>
 
   // Maintenance and cleanup operations
   cleanupExpiredReservations(): Promise<{ cleanedCount: number; message: string }>
-  validateSeatLayout(scheduleId: number): Promise<{ valid: boolean; issues: string[] }>
+  validateSeatLayout(showId: number): Promise<{ valid: boolean; issues: string[] }>
 
   // Real-time seat updates (for WebSocket/SSE integration)
-  subscribeSeatUpdates(scheduleId: number, callback: (updates: SeatDetails[]) => void): void
-  unsubscribeSeatUpdates(scheduleId: number): void
-  broadcastSeatUpdate(scheduleId: number, seatIds: number[]): Promise<void>
+  subscribeSeatUpdates(showId: number, callback: (updates: SeatDetails[]) => void): void
+  unsubscribeSeatUpdates(showId: number): void
+  broadcastSeatUpdate(showId: number, seatIds: number[]): Promise<void>
 }

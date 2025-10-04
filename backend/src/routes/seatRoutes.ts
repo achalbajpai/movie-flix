@@ -5,17 +5,17 @@ import { authenticateUser, optionalAuth } from '@/middleware'
 export const createSeatRoutes = (seatController: ReturnType<typeof createSeatController>): Router => {
   const router = Router()
 
-  // Seat queries by schedule - require authentication for seat selection
-  router.get('/schedule/:scheduleId', authenticateUser, seatController.getSeatsBySchedule)
-  router.get('/schedule/:scheduleId/available', authenticateUser, seatController.getAvailableSeats)
-  router.get('/schedule/:scheduleId/layout', authenticateUser, seatController.getSeatLayout)
-  router.get('/schedule/:scheduleId/booked', authenticateUser, seatController.getBookedSeatsBySchedule)
-  router.get('/schedule/:scheduleId/seat/:seatNumber', authenticateUser, seatController.getSeatByNumber)
+  // Seat queries by show - require authentication for seat selection
+  router.get('/show/:showId', authenticateUser, seatController.getSeatsByShow)
+  router.get('/show/:showId/available', authenticateUser, seatController.getAvailableSeats)
+  router.get('/show/:showId/layout', authenticateUser, seatController.getSeatLayout)
+  router.get('/show/:showId/booked', authenticateUser, seatController.getBookedSeatsByShow)
+  router.get('/show/:showId/seat/:seatNumber', authenticateUser, seatController.getSeatByNumber)
 
   // Seat availability and validation - require authentication
-  router.post('/schedule/:scheduleId/check-availability', authenticateUser, seatController.checkSeatAvailability)
-  router.post('/schedule/:scheduleId/calculate-prices', authenticateUser, seatController.calculateSeatPrices)
-  router.post('/schedule/:scheduleId/validate-selection', authenticateUser, seatController.validateSeatSelection)
+  router.post('/show/:showId/check-availability', authenticateUser, seatController.checkSeatAvailability)
+  router.post('/show/:showId/calculate-prices', authenticateUser, seatController.calculateSeatPrices)
+  router.post('/show/:showId/validate-selection', authenticateUser, seatController.validateSeatSelection)
 
   // Individual seat operations - require authentication
   router.get('/:id', authenticateUser, seatController.getSeatById)
@@ -35,13 +35,13 @@ export const createSeatRoutes = (seatController: ReturnType<typeof createSeatCon
   router.get('/booking/:bookingId', authenticateUser, seatController.getSeatsByBooking)
 
   // Analytics and statistics - require authentication (admin only typically)
-  router.get('/schedule/:scheduleId/occupancy-rate', authenticateUser, seatController.getSeatOccupancyRate)
-  router.get('/schedule/:scheduleId/popular', authenticateUser, seatController.getPopularSeats)
-  router.get('/schedule/:scheduleId/revenue', authenticateUser, seatController.getSeatRevenue)
+  router.get('/show/:showId/occupancy-rate', authenticateUser, seatController.getSeatOccupancyRate)
+  router.get('/show/:showId/popular', authenticateUser, seatController.getPopularSeats)
+  router.get('/show/:showId/revenue', authenticateUser, seatController.getSeatRevenue)
 
   // Maintenance operations - require authentication (admin only typically)
   router.post('/cleanup-expired-reservations', authenticateUser, seatController.cleanupExpiredReservations)
-  router.get('/schedule/:scheduleId/validate-layout', authenticateUser, seatController.validateSeatLayout)
+  router.get('/show/:showId/validate-layout', authenticateUser, seatController.validateSeatLayout)
 
   return router
 }

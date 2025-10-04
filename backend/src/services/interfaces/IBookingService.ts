@@ -19,7 +19,7 @@ export interface IBookingService {
 
   // Booking queries and searches
   getAllBookings(query?: BookingQuery): Promise<BookingHistory>
-  getBookingsBySchedule(scheduleId: number): Promise<BookingResponse[]>
+  getBookingsByShow(showId: number): Promise<BookingResponse[]>
   getBookingsByDateRange(fromDate: string, toDate: string): Promise<BookingResponse[]>
   getBookingsByStatus(status: BookingStatus): Promise<BookingResponse[]>
 
@@ -41,7 +41,7 @@ export interface IBookingService {
   // Statistics and analytics
   getBookingStatistics(): Promise<BookingStatistics>
   getRevenueByPeriod(startDate: string, endDate: string): Promise<Array<{ period: string; revenue: number }>>
-  getPopularRoutes(limit?: number): Promise<Array<{ route: string; bookings: number }>>
+  getPopularMovies(limit?: number): Promise<Array<{ movie: string; bookings: number }>>
 
   // Booking reference operations
   getBookingByReference(reference: string): Promise<BookingResponse | null>

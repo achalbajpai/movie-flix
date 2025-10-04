@@ -29,10 +29,10 @@ export const createBookingController = (bookingService: IBookingService) => {
     const requestData = validationResult.data as any
     const bookingData = {
       userId: requestData.userId,
-      scheduleId: requestData.scheduleId,
+      showId: requestData.showId,
       seats: requestData.seatIds.map((seatId: number, index: number) => ({
         seatId: seatId,
-        passenger: requestData.passengers[index] || requestData.passengers[0] // Use corresponding passenger or first passenger
+        customer: requestData.customers[index] || requestData.customers[0] // Use corresponding customer or first customer
       })),
       contactDetails: requestData.contactDetails,
       totalAmount: 0 // Will be calculated in service
@@ -154,16 +154,16 @@ export const createBookingController = (bookingService: IBookingService) => {
     res.json(response)
   })
 
-  const getBookingsBySchedule = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.scheduleId(req.params)
+  const getBookingsByShow = asyncHandler(async (req: Request, res: Response) => {
+    const validationResult = validate.showId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid schedule ID parameter')
+      throw new Error('Invalid show ID parameter')
     }
-    const { scheduleId } = validationResult.data as any
+    const { showId } = validationResult.data as any
 
-    const bookings = await bookingService.getBookingsBySchedule(scheduleId)
+    const bookings = await bookingService.getBookingsByShow(showId)
 
-    return res.json(ResponseBuilder.success(bookings, 'Schedule bookings retrieved successfully'))
+    return res.json(ResponseBuilder.success(bookings, 'Show bookings retrieved successfully'))
   })
 
   const getBookingsByDateRange = asyncHandler(async (req: Request, res: Response) => {
@@ -244,12 +244,12 @@ export const createBookingController = (bookingService: IBookingService) => {
     return res.json(ResponseBuilder.success(revenue, 'Revenue by period retrieved successfully'))
   })
 
-  const getPopularRoutes = asyncHandler(async (req: Request, res: Response) => {
+  const getPopularMovies = asyncHandler(async (req: Request, res: Response) => {
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 10
 
-    const routes = await bookingService.getPopularRoutes(limit)
+    const movies = await bookingService.getPopularMovies(limit)
 
-    return res.json(ResponseBuilder.success(routes, 'Popular routes retrieved successfully'))
+    return res.json(ResponseBuilder.success(movies, 'Popular movies retrieved successfully'))
   })
 
   const getBookingByReference = asyncHandler(async (req: Request, res: Response) => {
@@ -339,7 +339,7 @@ export const createBookingController = (bookingService: IBookingService) => {
     updateBookingStatus,
     cancelBooking,
     getAllBookings,
-    getBookingsBySchedule,
+    getBookingsByShow,
     getBookingsByDateRange,
     getBookingsByStatus,
     getUpcomingBookings,
@@ -347,7 +347,7 @@ export const createBookingController = (bookingService: IBookingService) => {
     getCancellableBookings,
     getBookingStatistics,
     getRevenueByPeriod,
-    getPopularRoutes,
+    getPopularMovies,
     getBookingByReference,
     generateTicket,
     checkBookingAccess,

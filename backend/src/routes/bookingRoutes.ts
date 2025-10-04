@@ -19,14 +19,14 @@ export const createBookingRoutes = (bookingController: ReturnType<typeof createB
 
   // Admin/Analytics endpoints - require authentication (these would typically require admin role)
   router.get('/', authenticateUser, bookingController.getAllBookings)
-  router.get('/schedule/:scheduleId', authenticateUser, bookingController.getBookingsBySchedule)
+  router.get('/show/:showId', authenticateUser, bookingController.getBookingsByShow)
   router.get('/date-range', authenticateUser, bookingController.getBookingsByDateRange)
   router.get('/status/:status', authenticateUser, bookingController.getBookingsByStatus)
 
   // Statistics - require authentication
   router.get('/stats', authenticateUser, bookingController.getBookingStatistics)
   router.get('/revenue/period', authenticateUser, bookingController.getRevenueByPeriod)
-  router.get('/routes/popular', authenticateUser, bookingController.getPopularRoutes)
+  router.get('/movies/popular', authenticateUser, bookingController.getPopularMovies)
 
   // Booking reference and tickets - require authentication
   router.get('/reference/:reference', authenticateUser, bookingController.getBookingByReference)

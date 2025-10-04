@@ -11,8 +11,7 @@ import {
   BookingStatus,
   DatabaseBooking,
   DatabaseBookingSeat,
-  BookingSeatWithDetails,
-  ScheduleDetails
+  BookingSeatWithDetails
 } from '@/models'
 
 export class SupabaseBookingRepository implements IBookingRepository {
@@ -24,7 +23,7 @@ export class SupabaseBookingRepository implements IBookingRepository {
         .from('Booking')
         .insert({
           user_id: bookingData.userId,
-          schedule_id: bookingData.scheduleId,
+          show_id: bookingData.showId,
           status: 'confirmed',
           total_amt: bookingData.totalAmount
         })
@@ -33,13 +32,16 @@ export class SupabaseBookingRepository implements IBookingRepository {
 
       if (bookingError) throw new Error(`Failed to create booking: ${bookingError.message}`)
 
-      // Create booking seats with passenger details
+      // Create booking seats with customer details
+      // Use contact details from bookingData for all seats, or individual customer details if provided
       const bookingSeats = bookingData.seats.map(seat => ({
         booking_id: booking.booking_id,
         seat_id: seat.seatId,
-        pass_name: seat.passenger.name,
-        pass_age: seat.passenger.age,
-        gender: seat.passenger.gender
+        customer_name: seat.customer.name,
+        customer_age: seat.customer.age,
+        gender: seat.customer.gender,
+        customer_email: bookingData.contactDetails.email, // Use booking-level contact email
+        customer_phone: bookingData.contactDetails.phone  // Use booking-level contact phone
       }))
 
       const { error: seatsError } = await supabase
@@ -78,20 +80,23 @@ export class SupabaseBookingRepository implements IBookingRepository {
         .select(`
           *,
           Booking_seat (
-            booking_s_id,
+            ticket_id,
             seat_id,
-            pass_name,
-            pass_age,
+            customer_name,
+            customer_age,
+            customer_email,
+            customer_phone,
             gender,
-            Seat (seat_no, price)
+            Seat (seat_no, price, seat_type, row_number, column_number)
           ),
-          Schedules (
-            schedule_id,
-            departure,
-            arrival,
+          show (
+            show_id,
+            show_time,
+            end_time,
             base_price,
-            Bus (bus_id, bus_no, bus_type, total_seats, Operator (operator_id, company, verification)),
-            Routes (route_id, source_des, drop_des, distance, approx_time)
+            show_type,
+            movie (movie_id, title, description, duration, genre, rating, poster_url, language),
+            screen (screen_id, screen_name, screen_type, total_seats, theater (theater_id, name, location, city, phone, email))
           )
         `)
         .eq('booking_id', bookingId)
@@ -121,20 +126,21 @@ export class SupabaseBookingRepository implements IBookingRepository {
         .select(`
           *,
           Booking_seat (
-            booking_s_id,
+            ticket_id,
             seat_id,
-            pass_name,
-            pass_age,
+            customer_name,
+            customer_age,
             gender,
             Seat (seat_no, price)
           ),
-          Schedules (
-            schedule_id,
-            departure,
-            arrival,
+          show (
+            show_id,
+            show_time,
+            end_time,
             base_price,
-            Bus (bus_id, bus_no, bus_type, total_seats, Operator (operator_id, company, verification)),
-            Routes (route_id, source_des, drop_des, distance, approx_time)
+            show_type,
+            movie (movie_id, title, description, duration, genre, rating, poster_url, language),
+            screen (screen_id, screen_name, screen_type, total_seats, theater (theater_id, name, location, city, phone, email))
           )
         `, { count: 'exact' })
         .eq('user_id', userId)
@@ -216,7 +222,7 @@ export class SupabaseBookingRepository implements IBookingRepository {
       if (updateError) throw new Error(`Failed to cancel booking: ${updateError.message}`)
 
       // Release seats
-      const seatIds = booking.passengers.map(p => p.seat_id)
+      const seatIds = booking.customers.map(c => c.seat_id)
       const { error: seatError } = await supabase
         .from('Seat')
         .update({ is_reserved: false })
@@ -245,20 +251,21 @@ export class SupabaseBookingRepository implements IBookingRepository {
         .select(`
           *,
           Booking_seat (
-            booking_s_id,
+            ticket_id,
             seat_id,
-            pass_name,
-            pass_age,
+            customer_name,
+            customer_age,
             gender,
             Seat (seat_no, price)
           ),
-          Schedules (
-            schedule_id,
-            departure,
-            arrival,
+          show (
+            show_id,
+            show_time,
+            end_time,
             base_price,
-            Bus (bus_id, bus_no, bus_type, total_seats, Operator (operator_id, company, verification)),
-            Routes (route_id, source_des, drop_des, distance, approx_time)
+            show_type,
+            movie (movie_id, title, description, duration, genre, rating, poster_url, language),
+            screen (screen_id, screen_name, screen_type, total_seats, theater (theater_id, name, location, city, phone, email))
           )
         `, { count: 'exact' })
         .order('created_at', { ascending: false })
@@ -302,30 +309,31 @@ export class SupabaseBookingRepository implements IBookingRepository {
     }
   }
 
-  async findByScheduleId(scheduleId: number): Promise<BookingResponse[]> {
+  async findByShowId(showId: number): Promise<BookingResponse[]> {
     try {
       const { data: bookings, error } = await supabase
         .from('Booking')
         .select(`
           *,
           Booking_seat (
-            booking_s_id,
+            ticket_id,
             seat_id,
-            pass_name,
-            pass_age,
+            customer_name,
+            customer_age,
             gender,
             Seat (seat_no, price)
           ),
-          Schedules (
-            schedule_id,
-            departure,
-            arrival,
+          show (
+            show_id,
+            show_time,
+            end_time,
             base_price,
-            Bus (bus_id, bus_no, bus_type, total_seats, Operator (operator_id, company, verification)),
-            Routes (route_id, source_des, drop_des, distance, approx_time)
+            show_type,
+            movie (movie_id, title, description, duration, genre, rating, poster_url, language),
+            screen (screen_id, screen_name, screen_type, total_seats, theater (theater_id, name, location, city, phone, email))
           )
         `)
-        .eq('schedule_id', scheduleId)
+        .eq('show_id', showId)
         .order('created_at', { ascending: false })
 
       if (error) throw new Error(`Failed to find bookings: ${error.message}`)
@@ -333,7 +341,7 @@ export class SupabaseBookingRepository implements IBookingRepository {
       return bookings?.map(booking => this.transformBookingData(booking as any)) || []
 
     } catch (error) {
-      logger.error('Error finding bookings by schedule', { error: (error as Error).message, scheduleId })
+      logger.error('Error finding bookings by schedule', { error: (error as Error).message, showId })
       throw error
     }
   }
@@ -345,20 +353,21 @@ export class SupabaseBookingRepository implements IBookingRepository {
         .select(`
           *,
           Booking_seat (
-            booking_s_id,
+            ticket_id,
             seat_id,
-            pass_name,
-            pass_age,
+            customer_name,
+            customer_age,
             gender,
             Seat (seat_no, price)
           ),
-          Schedules (
-            schedule_id,
-            departure,
-            arrival,
+          show (
+            show_id,
+            show_time,
+            end_time,
             base_price,
-            Bus (bus_id, bus_no, bus_type, total_seats, Operator (operator_id, company, verification)),
-            Routes (route_id, source_des, drop_des, distance, approx_time)
+            show_type,
+            movie (movie_id, title, description, duration, genre, rating, poster_url, language),
+            screen (screen_id, screen_name, screen_type, total_seats, theater (theater_id, name, location, city, phone, email))
           )
         `)
         .gte('created_at', fromDate)
@@ -382,20 +391,21 @@ export class SupabaseBookingRepository implements IBookingRepository {
         .select(`
           *,
           Booking_seat (
-            booking_s_id,
+            ticket_id,
             seat_id,
-            pass_name,
-            pass_age,
+            customer_name,
+            customer_age,
             gender,
             Seat (seat_no, price)
           ),
-          Schedules (
-            schedule_id,
-            departure,
-            arrival,
+          show (
+            show_id,
+            show_time,
+            end_time,
             base_price,
-            Bus (bus_id, bus_no, bus_type, total_seats, Operator (operator_id, company, verification)),
-            Routes (route_id, source_des, drop_des, distance, approx_time)
+            show_type,
+            movie (movie_id, title, description, duration, genre, rating, poster_url, language),
+            screen (screen_id, screen_name, screen_type, total_seats, theater (theater_id, name, location, city, phone, email))
           )
         `)
         .eq('status', status)
@@ -440,18 +450,19 @@ export class SupabaseBookingRepository implements IBookingRepository {
 
       const revenueByPeriod = revenueError ? [] : revenueData || []
 
-      // Get popular routes
-      const { data: routeData, error: routeError } = await supabase
-        .rpc('get_popular_booking_routes', { limit_count: 10 })
+      // Get popular movies
+      const popularMovies = await this.getPopularMovies(10)
 
-      const popularRoutes = routeError ? [] : routeData || []
+      // Get popular theaters (simplified implementation)
+      const popularTheaters: Array<{ theater: string; bookings: number }> = []
 
       return {
         totalBookings,
         totalRevenue,
         bookingsByStatus,
         revenueByPeriod,
-        popularRoutes
+        popularMovies,
+        popularTheaters
       }
 
     } catch (error) {
@@ -489,33 +500,35 @@ export class SupabaseBookingRepository implements IBookingRepository {
     }
   }
 
-  async getPopularRoutes(limit = 10): Promise<Array<{ route: string; bookings: number }>> {
+  async getPopularMovies(limit = 10): Promise<Array<{ movie: string; bookings: number }>> {
     try {
       const { data, error } = await supabase
         .from('Booking')
         .select(`
-          Schedules (
-            Routes (source_des, drop_des)
+          show (
+            movie (title)
           )
         `)
         .eq('status', 'confirmed')
 
-      if (error) throw new Error(`Failed to get popular routes: ${error.message}`)
+      if (error) throw new Error(`Failed to get popular movies: ${error.message}`)
 
-      // Group by route
-      const routeCounts = data?.reduce((acc: Record<string, number>, booking: any) => {
-        const route = `${booking.Schedules?.Routes?.source_des} to ${booking.Schedules?.Routes?.drop_des}`
-        acc[route] = (acc[route] || 0) + 1
+      // Group by movie title
+      const movieCounts = data?.reduce((acc: Record<string, number>, booking: any) => {
+        const movieTitle = booking.Show?.Movie?.title
+        if (movieTitle) {
+          acc[movieTitle] = (acc[movieTitle] || 0) + 1
+        }
         return acc
       }, {}) || {}
 
-      return Object.entries(routeCounts)
-        .map(([route, bookings]) => ({ route, bookings: bookings as number }))
+      return Object.entries(movieCounts)
+        .map(([movie, bookings]) => ({ movie, bookings: bookings as number }))
         .sort((a, b) => b.bookings - a.bookings)
         .slice(0, limit)
 
     } catch (error) {
-      logger.error('Error getting popular routes', { error: (error as Error).message, limit })
+      logger.error('Error getting popular movies', { error: (error as Error).message, limit })
       throw error
     }
   }
@@ -584,26 +597,27 @@ export class SupabaseBookingRepository implements IBookingRepository {
         .select(`
           *,
           Booking_seat (
-            booking_s_id,
+            ticket_id,
             seat_id,
-            pass_name,
-            pass_age,
+            customer_name,
+            customer_age,
             gender,
             Seat (seat_no, price)
           ),
-          Schedules (
-            schedule_id,
-            departure,
-            arrival,
+          show (
+            show_id,
+            show_time,
+            end_time,
             base_price,
-            Bus (bus_id, bus_no, bus_type, total_seats, Operator (operator_id, company, verification)),
-            Routes (route_id, source_des, drop_des, distance, approx_time)
+            show_type,
+            movie (movie_id, title, description, duration, genre, rating, poster_url, language),
+            screen (screen_id, screen_name, screen_type, total_seats, theater (theater_id, name, location, city, phone, email))
           )
         `)
         .eq('user_id', userId)
         .in('status', ['confirmed', 'pending'])
-        .filter('Schedules.departure', 'gte', new Date().toISOString())
-        .order('Schedules.departure', { ascending: true })
+        .filter('show.show_time', 'gte', new Date().toISOString())
+        .order('show.show_time', { ascending: true })
 
       if (error) throw new Error(`Failed to find upcoming bookings: ${error.message}`)
 
@@ -622,25 +636,26 @@ export class SupabaseBookingRepository implements IBookingRepository {
         .select(`
           *,
           Booking_seat (
-            booking_s_id,
+            ticket_id,
             seat_id,
-            pass_name,
-            pass_age,
+            customer_name,
+            customer_age,
             gender,
             Seat (seat_no, price)
           ),
-          Schedules (
-            schedule_id,
-            departure,
-            arrival,
+          show (
+            show_id,
+            show_time,
+            end_time,
             base_price,
-            Bus (bus_id, bus_no, bus_type, total_seats, Operator (operator_id, company, verification)),
-            Routes (route_id, source_des, drop_des, distance, approx_time)
+            show_type,
+            movie (movie_id, title, description, duration, genre, rating, poster_url, language),
+            screen (screen_id, screen_name, screen_type, total_seats, theater (theater_id, name, location, city, phone, email))
           )
         `)
         .eq('user_id', userId)
-        .filter('Schedules.departure', 'lt', new Date().toISOString())
-        .order('Schedules.departure', { ascending: false })
+        .filter('show.show_time', 'lt', new Date().toISOString())
+        .order('show.show_time', { ascending: false })
 
       if (error) throw new Error(`Failed to find past bookings: ${error.message}`)
 
@@ -659,26 +674,27 @@ export class SupabaseBookingRepository implements IBookingRepository {
         .select(`
           *,
           Booking_seat (
-            booking_s_id,
+            ticket_id,
             seat_id,
-            pass_name,
-            pass_age,
+            customer_name,
+            customer_age,
             gender,
             Seat (seat_no, price)
           ),
-          Schedules (
-            schedule_id,
-            departure,
-            arrival,
+          show (
+            show_id,
+            show_time,
+            end_time,
             base_price,
-            Bus (bus_id, bus_no, bus_type, total_seats, Operator (operator_id, company, verification)),
-            Routes (route_id, source_des, drop_des, distance, approx_time)
+            show_type,
+            movie (movie_id, title, description, duration, genre, rating, poster_url, language),
+            screen (screen_id, screen_name, screen_type, total_seats, theater (theater_id, name, location, city, phone, email))
           )
         `)
         .eq('user_id', userId)
         .in('status', ['confirmed', 'pending'])
-        .filter('Schedules.departure', 'gte', new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()) // 2 hours from now
-        .order('Schedules.departure', { ascending: true })
+        .filter('show.show_time', 'gte', new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()) // 2 hours from now
+        .order('show.show_time', { ascending: true })
 
       if (error) throw new Error(`Failed to find cancellable bookings: ${error.message}`)
 
@@ -694,43 +710,53 @@ export class SupabaseBookingRepository implements IBookingRepository {
     return {
       booking_id: booking.booking_id,
       user_id: booking.user_id,
-      schedule_id: booking.schedule_id,
+      show_id: booking.show_id,
       status: booking.status,
       price: booking.price,
       total_amt: booking.total_amt,
       created_at: booking.created_at,
       updated_at: booking.updated_at,
-      passengers: booking.Booking_seat?.map((bs: any) => ({
-        booking_s_id: bs.booking_s_id,
+      customers: booking.Booking_seat?.map((bs: any) => ({
+        ticket_id: bs.ticket_id,
         seat_id: bs.seat_id,
         seat_no: bs.Seat?.seat_no,
-        pass_name: bs.pass_name,
-        pass_age: bs.pass_age,
+        customer_name: bs.customer_name,
+        customer_age: bs.customer_age,
+        customer_email: bs.customer_email,
+        customer_phone: bs.customer_phone,
         gender: bs.gender,
-        price: bs.Seat?.price || 0
+        price: bs.Seat?.price || 0,
+        seat_type: bs.Seat?.seat_type || 'Regular'
       })) || [],
-      schedule: {
-        schedule_id: booking.Schedules?.schedule_id,
-        departure: booking.Schedules?.departure,
-        arrival: booking.Schedules?.arrival,
-        base_price: booking.Schedules?.base_price,
-        bus: booking.Schedules?.Bus ? {
-          bus_id: booking.Schedules.Bus.bus_id,
-          bus_no: booking.Schedules.Bus.bus_no,
-          bus_type: booking.Schedules.Bus.bus_type,
-          total_seats: booking.Schedules.Bus.total_seats
+      show: {
+        show_id: booking.show?.show_id || booking.show_id,
+        show_time: booking.show?.show_time || '',
+        end_time: booking.show?.end_time || '',
+        base_price: booking.show?.base_price || 0,
+        show_type: booking.show?.show_type || 'Regular',
+        language: booking.show?.language || null,
+        movie: booking.show?.movie ? {
+          movie_id: booking.show.movie.movie_id,
+          title: booking.show.movie.title,
+          description: booking.show.movie.description,
+          duration: booking.show.movie.duration,
+          genre: booking.show.movie.genre,
+          rating: booking.show.movie.rating,
+          poster_url: booking.show.movie.poster_url
         } : {} as any,
-        route: booking.Schedules?.Routes ? {
-          route_id: booking.Schedules.Routes.route_id,
-          source_des: booking.Schedules.Routes.source_des,
-          drop_des: booking.Schedules.Routes.drop_des,
-          distance: booking.Schedules.Routes.distance,
-          approx_time: booking.Schedules.Routes.approx_time
+        screen: booking.show?.screen ? {
+          screen_id: booking.show.screen.screen_id,
+          screen_name: booking.show.screen.screen_name,
+          screen_type: booking.show.screen.screen_type,
+          total_seats: booking.show.screen.total_seats
         } : {} as any,
-        operator: booking.Schedules?.Bus?.Operator ? {
-          operator_id: booking.Schedules.Bus.Operator.operator_id,
-          company: booking.Schedules.Bus.Operator.company,
-          verification: booking.Schedules.Bus.Operator.verification
+        theater: booking.show?.screen?.theater ? {
+          theater_id: booking.show.screen.theater.theater_id,
+          name: booking.show.screen.theater.name,
+          location: booking.show.screen.theater.location,
+          city: booking.show.screen.theater.city,
+          phone: booking.show.screen.theater.phone,
+          email: booking.show.screen.theater.email
         } : {} as any
       },
       contactDetails: {
