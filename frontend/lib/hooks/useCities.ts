@@ -1,5 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
-import { cityApi, type City } from '../api'
+import { theaterApi } from '../api'
+
+export interface City {
+  id: string
+  name: string
+  state?: string
+}
 
 interface UseCitiesState {
   cities: City[]
@@ -20,7 +26,7 @@ export const useCities = (): UseCitiesReturn => {
     error: null
   })
 
-  const searchCities = useCallback(async (query: string, limit?: number) => {
+  const searchCities = useCallback(async (query: string) => {
     if (!query.trim()) {
       setState(prev => ({ ...prev, cities: [], error: null }))
       return
@@ -29,12 +35,19 @@ export const useCities = (): UseCitiesReturn => {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const response = await cityApi.search(query, limit)
+      const response = await theaterApi.search(query)
 
       if (response.success && response.data) {
+        // Extract unique cities from theaters and convert to City objects
+        const uniqueCityNames = [...new Set(response.data!.map(theater => theater.city))]
+        const cityObjects: City[] = uniqueCityNames.map(cityName => ({
+          id: cityName.toLowerCase().replace(/\s+/g, '-'),
+          name: cityName,
+          state: undefined
+        }))
         setState(prev => ({
           ...prev,
-          cities: response.data!,
+          cities: cityObjects,
           loading: false,
           error: null
         }))
@@ -58,12 +71,18 @@ export const useCities = (): UseCitiesReturn => {
     setState(prev => ({ ...prev, loading: true, error: null }))
 
     try {
-      const response = await cityApi.getPopular()
+      const response = await theaterApi.getCities()
 
       if (response.success && response.data) {
+        // Convert string array to City objects
+        const cityObjects: City[] = response.data!.map(cityName => ({
+          id: cityName.toLowerCase().replace(/\s+/g, '-'),
+          name: cityName,
+          state: undefined
+        }))
         setState(prev => ({
           ...prev,
-          cities: response.data!,
+          cities: cityObjects,
           loading: false,
           error: null
         }))
@@ -71,7 +90,7 @@ export const useCities = (): UseCitiesReturn => {
         setState(prev => ({
           ...prev,
           loading: false,
-          error: response.error?.message || 'Failed to fetch popular cities'
+          error: response.error?.message || 'Failed to fetch cities'
         }))
       }
     } catch (error) {

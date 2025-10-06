@@ -12,8 +12,8 @@ export const SEAT_CONFIG = {
 } as const
 
 export const BOOKING_CONFIG = {
-  DEFAULT_PASSENGER_AGE: 25,
-  REFERENCE_PREFIX: 'BUS',
+  DEFAULT_CUSTOMER_AGE: 25,
+  REFERENCE_PREFIX: 'MV',
 } as const
 
 export const API_CONFIG = {
@@ -24,8 +24,8 @@ export const API_CONFIG = {
 } as const
 
 export const VALIDATION_CONFIG = {
-  MIN_PASSENGER_AGE: 1,
-  MAX_PASSENGER_AGE: 120,
+  MIN_CUSTOMER_AGE: 1,
+  MAX_CUSTOMER_AGE: 120,
   PHONE_PATTERN: /^[6-9]\d{9}$/,
   EMAIL_PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
 } as const
@@ -44,11 +44,11 @@ export const DEV_CONFIG = {
 // Error messages
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Network error occurred. Please check your connection and try again.',
-  INVALID_SCHEDULE: 'Invalid schedule selected. Please select a valid bus.',
+  INVALID_SHOW: 'Invalid show selected. Please select a valid show.',
   SEAT_UNAVAILABLE: 'Selected seats are no longer available. Please select different seats.',
   BOOKING_FAILED: 'Booking failed. Please try again.',
   VALIDATION_FAILED: 'Please check the form data and try again.',
-  MISSING_SCHEDULE_ID: 'Schedule ID is required to proceed with booking.',
+  MISSING_SHOW_ID: 'Show ID is required to proceed with booking.',
 } as const
 
 // Success messages

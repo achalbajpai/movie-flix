@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { api, BookingResponse } from '@/lib/api'
+import { api } from '@/lib/api/simplified'
+import { BookingResponse } from '@/lib/api'
 
 interface CreateBookingData {
   userId: string
-  busId: string
-  scheduleId: number
+  showId: number
   seatIds: number[]
-  passengers: Array<{
+  customers: Array<{
     name: string
     age: number
     gender: 'male' | 'female' | 'other'
@@ -35,21 +35,21 @@ export function useBooking() {
   }
 
   // Create a new booking
-  const createBooking = useCallback(async (bookingData: CreateBookingData): Promise<BookingResponse | null> => {
+  const createBooking = useCallback(async (bookingData: CreateBookingData): Promise<any> => {
     updateState({ loading: true, error: null })
 
     try {
       const response = await api.createBooking({
         userId: bookingData.userId,
-        busId: bookingData.busId,
-        scheduleId: bookingData.scheduleId,
+        showId: bookingData.showId,
         seatIds: bookingData.seatIds,
-        passengers: bookingData.passengers,
+        customers: bookingData.customers,
         contactDetails: bookingData.contactDetails
       })
 
       if (response.success && response.data) {
         updateState({ loading: false })
+        // Backend returns BookingConfirmation with bookingId
         return response.data
       } else {
         throw new Error(response.error?.message || 'Failed to create booking')
@@ -111,21 +111,27 @@ export function useBooking() {
     updateState({ loading: true, error: null })
 
     try {
+      console.log('[useBooking] Cancelling booking:', bookingId)
       const response = await api.cancelBooking(bookingId, userId)
+      console.log('[useBooking] Cancel response:', response)
 
       if (response.success) {
         updateState({ loading: false })
+        console.log('[useBooking] Booking cancelled successfully')
         return true
       } else {
-        throw new Error(response.error?.message || 'Failed to cancel booking')
+        const errorMsg = response.error?.message || 'Failed to cancel booking'
+        console.error('[useBooking] Cancel failed:', errorMsg)
+        throw new Error(errorMsg)
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to cancel booking'
+      console.error('[useBooking] Cancel error:', errorMessage)
       updateState({
         loading: false,
         error: errorMessage
       })
-      return false
+      throw error
     }
   }, [])
 

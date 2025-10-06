@@ -14,15 +14,30 @@ export interface Operator {
   totalBuses?: number
 }
 
+// These APIs are for bus operators and cities - not used in movie booking system
 export const cityApi = {
-  getAll: (query?: string) => apiClient.getCities(query),
-  getPopular: () => apiClient.getPopularCities(),
-  getById: (id: string) => apiClient.getCityById(id),
-  search: (query?: string, limit?: number) => apiClient.getCities(query)
+  getAll: async (query?: string): Promise<ApiResponse<City[]>> => {
+    return { success: true, data: [], timestamp: new Date().toISOString() }
+  },
+  getPopular: async (): Promise<ApiResponse<City[]>> => {
+    return { success: true, data: [], timestamp: new Date().toISOString() }
+  },
+  getById: async (id: string): Promise<ApiResponse<City | null>> => {
+    return { success: true, data: null, timestamp: new Date().toISOString() }
+  },
+  search: async (query?: string, limit?: number): Promise<ApiResponse<City[]>> => {
+    return { success: true, data: [], timestamp: new Date().toISOString() }
+  }
 }
 
 export const operatorApi = {
-  getAll: () => apiClient.getOperators(),
-  getById: (id: string) => apiClient.getOperatorById(id),
-  getTop: (limit?: number) => apiClient.getTopOperators(limit)
+  getAll: async (): Promise<ApiResponse<Operator[]>> => {
+    return { success: true, data: [], timestamp: new Date().toISOString() }
+  },
+  getById: async (id: string): Promise<ApiResponse<Operator | null>> => {
+    return { success: true, data: null, timestamp: new Date().toISOString() }
+  },
+  getTop: async (limit?: number): Promise<ApiResponse<Operator[]>> => {
+    return { success: true, data: [], timestamp: new Date().toISOString() }
+  }
 }

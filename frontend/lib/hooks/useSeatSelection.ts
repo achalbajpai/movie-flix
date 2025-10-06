@@ -25,7 +25,7 @@ interface UseSeatSelectionState {
   lastAvailabilityCheck: Date | null
 }
 
-export function useSeatSelection(scheduleId: number, userId: string) {
+export function useSeatSelection(showId: number, userId: string) {
   const [state, setState] = useState<UseSeatSelectionState>({
     layout: null,
     availableSeats: [],
@@ -51,8 +51,8 @@ export function useSeatSelection(scheduleId: number, userId: string) {
 
     try {
       const [layoutResponse, availableResponse] = await Promise.all([
-        seatApi.getLayout(scheduleId),
-        seatApi.getAvailable(scheduleId)
+        seatApi.getLayout(showId),
+        seatApi.getAvailable(showId)
       ])
 
       if (layoutResponse.success && availableResponse.success) {
@@ -72,14 +72,14 @@ export function useSeatSelection(scheduleId: number, userId: string) {
         error: errorMessage
       })
     }
-  }, [scheduleId])
+  }, [showId])
 
   // Check availability of specific seats
   const checkSeatAvailability = useCallback(async (seatIds: number[]): Promise<SeatAvailabilityResponse | null> => {
     if (seatIds.length === 0) return null
 
     try {
-      const response = await seatApi.checkAvailability(scheduleId, seatIds)
+      const response = await seatApi.checkAvailability(showId, seatIds)
 
       if (response.success && response.data) {
         updateState({ lastAvailabilityCheck: new Date() })
@@ -90,7 +90,7 @@ export function useSeatSelection(scheduleId: number, userId: string) {
     } catch (error) {
       return null
     }
-  }, [scheduleId])
+  }, [showId])
 
   // Select or deselect a seat
   const toggleSeat = useCallback(async (seatId: number) => {
@@ -135,7 +135,7 @@ export function useSeatSelection(scheduleId: number, userId: string) {
       // Create reservation
       try {
         const reservationData: SeatReservationRequest = {
-          scheduleId,
+          showId,
           seatIds: [seatId],
           userId,
           expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 minutes
@@ -168,7 +168,7 @@ export function useSeatSelection(scheduleId: number, userId: string) {
     }
 
     return true
-  }, [state.selectedSeats, state.reservedSeats, scheduleId, userId])
+  }, [state.selectedSeats, state.reservedSeats, showId, userId])
 
   // Update pricing for selected seats
   const updatePricing = useCallback(async (seatIds: number[]) => {
@@ -178,7 +178,7 @@ export function useSeatSelection(scheduleId: number, userId: string) {
     }
 
     try {
-      const response = await seatApi.calculatePrices(scheduleId, seatIds)
+      const response = await seatApi.calculatePrices(showId, seatIds)
 
       if (response.success && response.data) {
         updateState({ pricing: response.data })
@@ -186,14 +186,14 @@ export function useSeatSelection(scheduleId: number, userId: string) {
     } catch (error) {
       // Silently handle pricing calculation errors
     }
-  }, [scheduleId])
+  }, [showId])
 
   // Validate current seat selection
   const validateSelection = useCallback(async (): Promise<SeatSelectionValidation | null> => {
     if (state.selectedSeats.length === 0) return null
 
     try {
-      const response = await seatApi.validateSelection(scheduleId, state.selectedSeats)
+      const response = await seatApi.validateSelection(showId, state.selectedSeats)
 
       if (response.success && response.data) {
         return response.data
@@ -203,7 +203,7 @@ export function useSeatSelection(scheduleId: number, userId: string) {
     } catch (error) {
       return null
     }
-  }, [scheduleId, state.selectedSeats])
+  }, [showId, state.selectedSeats])
 
   // Extend reservation
   const extendReservation = useCallback(async (seatId: number, additionalMinutes: number = 5): Promise<boolean> => {
@@ -289,7 +289,7 @@ export function useSeatSelection(scheduleId: number, userId: string) {
   // Refresh available seats periodically
   const refreshAvailability = useCallback(async () => {
     try {
-      const response = await seatApi.getAvailable(scheduleId)
+      const response = await seatApi.getAvailable(showId)
       if (response.success && response.data) {
         updateState({
           availableSeats: response.data,
@@ -299,7 +299,7 @@ export function useSeatSelection(scheduleId: number, userId: string) {
     } catch (error) {
       // Silently handle availability refresh errors
     }
-  }, [scheduleId])
+  }, [showId])
 
   // Utility functions
   const isSeatAvailable = useCallback((seatId: number) => {
@@ -331,10 +331,10 @@ export function useSeatSelection(scheduleId: number, userId: string) {
 
   // Load seat layout on mount
   useEffect(() => {
-    if (scheduleId) {
+    if (showId) {
       loadSeatLayout()
     }
-  }, [scheduleId, loadSeatLayout])
+  }, [showId, loadSeatLayout])
 
   // Set up periodic availability refresh
   useEffect(() => {

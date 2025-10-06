@@ -2,9 +2,9 @@ import { apiClient, ApiResponse, PaginatedResponse } from './client'
 
 export interface CreateBookingRequest {
   userId: string
-  scheduleId: number
+  showId: number
   seatIds: number[]
-  passengers: Array<{
+  customers: Array<{
     name: string
     age: number
     gender: 'male' | 'female' | 'other'
@@ -23,7 +23,7 @@ export interface BookingConfirmation {
     seatNo: string
     passengerName: string
   }>
-  schedule: {
+  show: {
     departure: string
     arrival: string
     route: string
@@ -35,23 +35,23 @@ export interface BookingConfirmation {
 export interface BookingDetails {
   booking_id: number
   user_id: string
-  schedule_id: number
+  show_id: number
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'refunded'
   price: number
   total_amt: number
   created_at: string
   updated_at: string
-  passengers: Array<{
+  customers: Array<{
     booking_s_id: string
     seat_id: number
     seat_no: string
-    pass_name: string
-    pass_age: number
+    customer_name: string
+    customer_age: number
     gender: string
     price: number
   }>
-  schedule: {
-    schedule_id: number
+  show: {
+    show_id: number
     departure: string
     arrival: string
     base_price: number
@@ -96,11 +96,13 @@ export interface BookingValidation {
 
 export interface BookingResponse {
   id: string
+  booking_id?: number
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
   totalAmount: number
-  journeyDate: string
+  journeyDate?: string // Legacy field for compatibility
+  showDate?: string
   createdAt: string
-  bus: {
+  bus?: {
     id: string
     operatorName: string
     route: string
@@ -109,7 +111,21 @@ export interface BookingResponse {
     duration: number
     price: number
   }
-  passengers: Array<{
+  show?: {
+    showId: number
+    movieTitle: string
+    theaterName: string
+    screenName: string
+    showTime: string
+    showType: string
+    basePrice: number
+  }
+  customers: Array<{
+    name: string
+    age: number
+    gender: 'male' | 'female' | 'other'
+  }>
+  passengers?: Array<{
     name: string
     age: number
     gender: 'male' | 'female' | 'other'

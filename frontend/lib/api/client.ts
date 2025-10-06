@@ -109,58 +109,34 @@ export class ApiClient {
     }
   }
 
-  // Bus API methods
-  async searchBuses(params: any): Promise<ApiResponse<PaginatedResponse<any>>> {
-    const queryString = new URLSearchParams(
-      Object.entries(params).reduce((acc, [key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          acc[key] = String(value)
-        }
-        return acc
-      }, {} as Record<string, string>)
-    ).toString()
-
-    return this.request(`/api/${API_VERSION}/buses/search?${queryString}`)
+  // Generic GET method
+  async get<T>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
+    let url = `/api/${API_VERSION}${endpoint}`
+    if (params) {
+      const queryString = new URLSearchParams(
+        Object.entries(params).reduce((acc, [key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            acc[key] = String(value)
+          }
+          return acc
+        }, {} as Record<string, string>)
+      ).toString()
+      if (queryString) url += `?${queryString}`
+    }
+    return this.request<T>(url)
   }
 
-  async getBusById(id: string): Promise<ApiResponse<any>> {
-    return this.request(`/api/${API_VERSION}/buses/${id}`)
+  // Generic POST method
+  async post<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
+    return this.request<T>(`/api/${API_VERSION}${endpoint}`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
   }
 
-  async getBusByScheduleId(scheduleId: string): Promise<ApiResponse<any>> {
-    return this.request(`/api/${API_VERSION}/buses/schedule/${scheduleId}`)
-  }
-
-  async getAvailableSeats(scheduleId: string): Promise<ApiResponse<any[]>> {
-    return this.request(`/api/${API_VERSION}/buses/schedule/${scheduleId}/seats/available`)
-  }
-
-  // City API methods
-  async getCities(query?: string): Promise<ApiResponse<any[]>> {
-    const params = query ? `?search=${encodeURIComponent(query)}` : ''
-    return this.request(`/api/${API_VERSION}/cities${params}`)
-  }
-
-  async getPopularCities(): Promise<ApiResponse<any[]>> {
-    return this.request(`/api/${API_VERSION}/cities/popular`)
-  }
-
-  async getCityById(id: string): Promise<ApiResponse<any>> {
-    return this.request(`/api/${API_VERSION}/cities/${id}`)
-  }
-
-  // Operator API methods
-  async getOperators(): Promise<ApiResponse<any[]>> {
-    return this.request(`/api/${API_VERSION}/operators`)
-  }
-
-  async getOperatorById(id: string): Promise<ApiResponse<any>> {
-    return this.request(`/api/${API_VERSION}/operators/${id}`)
-  }
-
-  async getTopOperators(limit?: number): Promise<ApiResponse<any[]>> {
-    const params = limit ? `?limit=${limit}` : ''
-    return this.request(`/api/${API_VERSION}/operators/top${params}`)
+  // Theater API methods
+  async getCities(query?: string): Promise<ApiResponse<string[]>> {
+    return this.get('/theaters/cities', query ? { search: query } : undefined)
   }
 
   // Health API methods
@@ -246,30 +222,30 @@ export class ApiClient {
   }
 
   // Seat API methods
-  async getSeatLayout(scheduleId: number): Promise<ApiResponse<any>> {
-    return this.request(`/api/v1/seats/schedule/${scheduleId}/layout`)
+  async getSeatLayout(showId: number): Promise<ApiResponse<any>> {
+    return this.request(`/api/v1/seats/show/${showId}/layout`)
   }
 
-  async getAvailableSeatsForSchedule(scheduleId: number): Promise<ApiResponse<any[]>> {
-    return this.request(`/api/v1/seats/schedule/${scheduleId}/available`)
+  async getAvailableSeatsForShow(showId: number): Promise<ApiResponse<any[]>> {
+    return this.request(`/api/v1/seats/show/${showId}/available`)
   }
 
-  async checkSeatAvailability(scheduleId: number, seatIds: number[]): Promise<ApiResponse<any>> {
-    return this.request(`/api/v1/seats/schedule/${scheduleId}/check-availability`, {
+  async checkSeatAvailability(showId: number, seatIds: number[]): Promise<ApiResponse<any>> {
+    return this.request(`/api/v1/seats/show/${showId}/check-availability`, {
       method: 'POST',
       body: JSON.stringify({ seatIds })
     })
   }
 
-  async calculateSeatPrices(scheduleId: number, seatIds: number[]): Promise<ApiResponse<any>> {
-    return this.request(`/api/v1/seats/schedule/${scheduleId}/calculate-prices`, {
+  async calculateSeatPrices(showId: number, seatIds: number[]): Promise<ApiResponse<any>> {
+    return this.request(`/api/v1/seats/show/${showId}/calculate-prices`, {
       method: 'POST',
       body: JSON.stringify({ seatIds })
     })
   }
 
-  async validateSeatSelection(scheduleId: number, seatIds: number[]): Promise<ApiResponse<any>> {
-    return this.request(`/api/v1/seats/schedule/${scheduleId}/validate-selection`, {
+  async validateSeatSelection(showId: number, seatIds: number[]): Promise<ApiResponse<any>> {
+    return this.request(`/api/v1/seats/show/${showId}/validate-selection`, {
       method: 'POST',
       body: JSON.stringify({ seatIds })
     })

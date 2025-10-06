@@ -2,7 +2,7 @@ import { apiClient, ApiResponse } from './client'
 
 export interface SeatDetails {
   seat_id: number
-  schedule_id: number
+  show_id: number
   seat_no: string
   is_reserved: boolean
   price: number
@@ -44,7 +44,7 @@ export interface SeatSelectionValidation {
 }
 
 export interface SeatReservationRequest {
-  scheduleId: number
+  showId: number
   seatIds: number[]
   userId: string
   expiresAt?: string
@@ -52,7 +52,7 @@ export interface SeatReservationRequest {
 
 export interface SeatReservation {
   reservation_id: string
-  schedule_id: number
+  show_id: number
   seat_ids: number[]
   user_id: string
   expires_at: string
@@ -60,11 +60,11 @@ export interface SeatReservation {
 }
 
 export const seatApi = {
-  getLayout: (scheduleId: number) => apiClient.getSeatLayout(scheduleId),
-  getAvailable: (scheduleId: number) => apiClient.getAvailableSeatsForSchedule(scheduleId),
-  checkAvailability: (scheduleId: number, seatIds: number[]) => apiClient.checkSeatAvailability(scheduleId, seatIds),
-  calculatePrices: (scheduleId: number, seatIds: number[]) => apiClient.calculateSeatPrices(scheduleId, seatIds),
-  validateSelection: (scheduleId: number, seatIds: number[]) => apiClient.validateSeatSelection(scheduleId, seatIds),
+  getLayout: (showId: number) => apiClient.getSeatLayout(showId),
+  getAvailable: (showId: number) => apiClient.getAvailableSeatsForShow(showId),
+  checkAvailability: (showId: number, seatIds: number[]) => apiClient.checkSeatAvailability(showId, seatIds),
+  calculatePrices: (showId: number, seatIds: number[]) => apiClient.calculateSeatPrices(showId, seatIds),
+  validateSelection: (showId: number, seatIds: number[]) => apiClient.validateSeatSelection(showId, seatIds),
   createReservation: (reservationData: SeatReservationRequest) => apiClient.createSeatReservation(reservationData),
   getReservation: (reservationId: string) => apiClient.getSeatReservation(reservationId),
   extendReservation: (reservationId: string, additionalMinutes: number) => apiClient.extendReservation(reservationId, additionalMinutes),

@@ -71,8 +71,8 @@ export const RangeSelection: Story = {
     return (
       <Calendar
         mode="range"
-        selected={dateRange}
-        onSelect={setDateRange}
+        selected={dateRange as any}
+        onSelect={setDateRange as any}
         className="rounded-md border"
       />
     );

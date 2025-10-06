@@ -1,76 +1,27 @@
 import { apiClient, ApiResponse } from './client'
 import { BookingResponse, CreateBookingRequest } from './booking'
-import { BusSearchParams } from './bus'
-import { ERROR_MESSAGES } from '@/lib/constants'
 
 // Simplified API export for easier use in components
 export const api = {
-  searchBuses: (params: BusSearchParams) => apiClient.searchBuses(params),
-  getBusById: (id: string) => apiClient.getBusById(id),
-
   // Simplified booking methods with data transformation
   createBooking: async (data: {
     userId: string
-    busId: string
-    scheduleId: number
+    showId: number
     seatIds: number[]
-    passengers: Array<{ name: string; age: number; gender: 'male' | 'female' | 'other' }>
+    customers: Array<{ name: string; age: number; gender: 'male' | 'female' | 'other' }>
     contactDetails: { email: string; phone: string }
-  }): Promise<ApiResponse<BookingResponse>> => {
-    // Validate required fields
-    if (!data.scheduleId) {
-      throw new Error(ERROR_MESSAGES.MISSING_SCHEDULE_ID)
-    }
-
+  }): Promise<ApiResponse<any>> => {
     const bookingData: CreateBookingRequest = {
       userId: data.userId,
-      scheduleId: data.scheduleId,
+      showId: data.showId,
       seatIds: data.seatIds,
-      passengers: data.passengers,
+      customers: data.customers,
       contactDetails: data.contactDetails
     }
 
     const response = await apiClient.createBooking(bookingData)
-
-    // Transform the complex response to simple format
-    if (response.success && response.data) {
-      const simpleResponse: BookingResponse = {
-        id: response.data.bookingReference,
-        status: 'confirmed',
-        totalAmount: response.data.totalAmount,
-        journeyDate: response.data.schedule.departure,
-        createdAt: new Date().toISOString(),
-        bus: {
-          id: data.busId,
-          operatorName: 'Bus Operator', // TODO: Get from bus details
-          route: response.data.schedule.route,
-          departureTime: response.data.schedule.departure,
-          arrivalTime: response.data.schedule.arrival,
-          duration: 0, // TODO: Calculate
-          price: response.data.totalAmount / data.seatIds.length
-        },
-        passengers: data.passengers,
-        seats: response.data.seats.map((seat: any, index: number) => ({
-          seatId: data.seatIds[index] ?? 0,
-          seatNo: seat.seatNo,
-          price: response.data!.totalAmount / data.seatIds.length
-        })),
-        contactDetails: data.contactDetails
-      }
-
-      return {
-        success: response.success,
-        data: simpleResponse,
-        message: response.message,
-        timestamp: response.timestamp
-      }
-    }
-
-    return {
-      success: false,
-      error: response.error,
-      timestamp: response.timestamp
-    }
+    // Backend returns BookingConfirmation with bookingId, keep it as-is
+    return response
   },
 
   getBooking: async (bookingId: string): Promise<BookingResponse | null> => {
@@ -83,26 +34,26 @@ export const api = {
         id: booking.booking_id?.toString() || '',
         status: booking.status || 'pending',
         totalAmount: booking.total_amt || 0,
-        journeyDate: booking.schedule?.departure || '',
+        showDate: booking.show?.show_time || '',
         createdAt: booking.created_at || '',
-        bus: {
-          id: booking.schedule?.bus?.bus_id?.toString() || '',
-          operatorName: booking.schedule?.operator?.company || 'Unknown Operator',
-          route: `${booking.schedule?.route?.source_des || 'Source'} to ${booking.schedule?.route?.drop_des || 'Destination'}`,
-          departureTime: booking.schedule?.departure || '',
-          arrivalTime: booking.schedule?.arrival || '',
-          duration: 0,
-          price: booking.schedule?.base_price || 0
+        show: {
+          showId: booking.show?.show_id || 0,
+          movieTitle: booking.show?.movie?.title || 'Unknown Movie',
+          theaterName: booking.show?.theater?.name || 'Unknown Theater',
+          screenName: booking.show?.screen?.screen_name || '',
+          showTime: booking.show?.show_time || '',
+          showType: booking.show?.show_type || 'standard',
+          basePrice: booking.show?.base_price || 0
         },
-        passengers: (booking.passengers || []).map((p: any) => ({
-          name: p.pass_name || '',
-          age: p.pass_age || 0,
-          gender: p.gender || 'male'
+        customers: (booking.customers || []).map((c: any) => ({
+          name: c.customer_name || '',
+          age: c.customer_age || 0,
+          gender: c.gender || 'male'
         })),
-        seats: (booking.passengers || []).map((p: any) => ({
-          seatId: p.seat_id || 0,
-          seatNo: p.seat_no || '',
-          price: p.price || 0
+        seats: (booking.customers || []).map((c: any) => ({
+          seatId: c.seat_id || 0,
+          seatNo: c.seat_no || '',
+          price: c.price || 0
         })),
         contactDetails: booking.contactDetails || { email: '', phone: '' }
       }
@@ -122,26 +73,26 @@ export const api = {
         id: booking.booking_id?.toString() || '',
         status: booking.status || 'pending',
         totalAmount: booking.total_amt || 0,
-        journeyDate: booking.schedule?.departure || '',
+        showDate: booking.show?.show_time || '',
         createdAt: booking.created_at || '',
-        bus: {
-          id: booking.schedule?.bus?.bus_id?.toString() || '',
-          operatorName: booking.schedule?.operator?.company || 'Unknown Operator',
-          route: `${booking.schedule?.route?.source_des || 'Source'} to ${booking.schedule?.route?.drop_des || 'Destination'}`,
-          departureTime: booking.schedule?.departure || '',
-          arrivalTime: booking.schedule?.arrival || '',
-          duration: 0,
-          price: booking.schedule?.base_price || 0
+        show: {
+          showId: booking.show?.show_id || 0,
+          movieTitle: booking.show?.movie?.title || 'Unknown Movie',
+          theaterName: booking.show?.theater?.name || 'Unknown Theater',
+          screenName: booking.show?.screen?.screen_name || '',
+          showTime: booking.show?.show_time || '',
+          showType: booking.show?.show_type || 'standard',
+          basePrice: booking.show?.base_price || 0
         },
-        passengers: (booking.passengers || []).map((p: any) => ({
-          name: p.pass_name || '',
-          age: p.pass_age || 0,
-          gender: p.gender || 'male'
+        customers: (booking.customers || []).map((c: any) => ({
+          name: c.customer_name || '',
+          age: c.customer_age || 0,
+          gender: c.gender || 'male'
         })),
-        seats: (booking.passengers || []).map((p: any) => ({
-          seatId: p.seat_id || 0,
-          seatNo: p.seat_no || '',
-          price: p.price || 0
+        seats: (booking.customers || []).map((c: any) => ({
+          seatId: c.seat_id || 0,
+          seatNo: c.seat_no || '',
+          price: c.price || 0
         })),
         contactDetails: booking.contactDetails || { email: '', phone: '' }
       }))
@@ -157,6 +108,11 @@ export const api = {
     return response
   },
 
-  cancelBooking: (bookingId: string, userId: string) => apiClient.cancelBooking(parseInt(bookingId), userId),
+  cancelBooking: async (bookingId: string, userId: string) => {
+    console.log('[API] Cancelling booking:', bookingId, 'for user:', userId)
+    const response = await apiClient.cancelBooking(parseInt(bookingId), userId)
+    console.log('[API] Cancel booking response:', response)
+    return response
+  },
   downloadTicket: (bookingId: string) => apiClient.generateTicket(parseInt(bookingId))
 }
