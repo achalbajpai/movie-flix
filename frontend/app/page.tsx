@@ -11,10 +11,10 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
-                Find Your Perfect Bus Journey
+                Book Your Movie Tickets
               </h1>
               <p className="text-xl text-muted-foreground text-pretty">
-                Search and book bus tickets with ease
+                Find and book movie tickets at theaters near you
               </p>
             </div>
             <SearchForm />

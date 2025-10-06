@@ -7,13 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { SeatMap } from '@/components/seat-map'
-import { PassengerForm, PassengerDetails, ContactDetails } from '@/components/passenger-form'
+import { CustomerForm, CustomerDetails, ContactDetails } from '@/components/customer-form'
 import { ProtectedRoute } from '@/components/auth/protected-route'
 import { useAuth } from '@/lib/auth-context'
 import { useBooking } from '@/lib/hooks'
-import { Bus, api } from '@/lib/api'
-import { ERROR_MESSAGES } from '@/lib/constants'
-import { ArrowLeft, MapPin, Clock, Users, Star } from 'lucide-react'
+import { showApi } from '@/lib/api'
+import { ArrowLeft, Film, Clock, MapPin, Star } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface SelectedSeat {
@@ -22,165 +21,156 @@ interface SelectedSeat {
   price: number
 }
 
+interface Show {
+  show_id: number
+  show_time: string
+  end_time: string
+  base_price: number
+  show_type: string
+  movie_title: string
+  theater_name: string
+  screen_name: string
+}
+
 export default function BookingPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { user } = useAuth()
-  const [bus, setBus] = useState<Bus | null>(null)
-  const [loading, setBusLoading] = useState(true)
+  const [show, setShow] = useState<Show | null>(null)
+  const [loading, setLoading] = useState(true)
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([])
-  const [currentStep, setCurrentStep] = useState<'seat-selection' | 'passenger-details'>('seat-selection')
+  const [currentStep, setCurrentStep] = useState<'seat-selection' | 'customer-details'>('seat-selection')
 
   const { createBooking, loading: bookingLoading } = useBooking()
 
-  const busId = searchParams.get('busId')
-  const scheduleIdParam = searchParams.get('scheduleId') || searchParams.get('routeId')
-  const scheduleId = scheduleIdParam ? parseInt(scheduleIdParam) : null
-  const from = searchParams.get('source') || searchParams.get('from') // Try both parameter names
-  const to = searchParams.get('destination') || searchParams.get('to') // Try both parameter names
-  const date = searchParams.get('departureDate') || searchParams.get('date') // Try both parameter names
-
+  const showId = searchParams.get('showId')
+  const movieId = searchParams.get('movieId')
 
   useEffect(() => {
-    if (busId) {
-      fetchBusDetails()
+    if (showId) {
+      fetchShowDetails()
+    } else if (movieId) {
+      // Redirect to show selection if only movie ID is provided
+      router.push(`/results?movieId=${movieId}`)
     } else {
       router.push('/results')
     }
-  }, [busId, router])
+  }, [showId, movieId, router])
 
-  const fetchBusDetails = async () => {
-    if (!busId) return
+  const fetchShowDetails = async () => {
+    if (!showId) return
 
     try {
-      setBusLoading(true)
+      setLoading(true)
+      const response = await showApi.getById(parseInt(showId))
 
-      // Check if we have required search parameters
-      if (!from || !to || !date) {
-        toast.error('Missing search parameters. Please search for buses again.')
-        router.push('/results')
-        return
-      }
-
-      // Try to search for buses with the provided parameters
-      const searchResults = await api.searchBuses({
-        source: from,
-        destination: to,
-        departureDate: date,
-        passengers: 1
-      })
-
-      if (searchResults.success && searchResults.data) {
-        // searchResults.data is a PaginatedResponse, so the buses are in searchResults.data.data
-        const buses = searchResults.data.data || []
-        const foundBus = buses.find(b => b.id === busId)
-        if (foundBus) {
-          // Validate that the bus has a valid schedule ID
-          if (!foundBus.id || isNaN(parseInt(foundBus.id))) {
-            toast.error(ERROR_MESSAGES.INVALID_SCHEDULE)
-            router.push('/results?' + searchParams.toString())
-            return
-          }
-          setBus(foundBus)
-        } else {
-          toast.error('Bus not found in search results')
-          router.push('/results?' + searchParams.toString())
-        }
+      if (response.success && response.data) {
+        const showData: any = response.data
+        // Transform the nested structure to flat structure expected by component
+        setShow({
+          show_id: showData.show_id,
+          show_time: showData.show_time,
+          end_time: showData.end_time,
+          base_price: showData.base_price,
+          show_type: showData.show_type,
+          movie_title: showData.movie?.title || 'Unknown Movie',
+          theater_name: showData.theater?.name || 'Unknown Theater',
+          screen_name: showData.screen?.name || 'Unknown Screen'
+        })
       } else {
-        throw new Error(searchResults.error?.message || 'Failed to search buses')
+        throw new Error(response.error?.message || 'Failed to load show details')
       }
     } catch (error) {
-      toast.error('Failed to load bus details. Please try again.')
-      // Redirect back to results with the original search parameters
+      console.error('Error fetching show details:', error)
+      toast.error('Failed to load show details. Please try again.')
       router.push('/results?' + searchParams.toString())
     } finally {
-      setBusLoading(false)
+      setLoading(false)
     }
   }
 
   const handleSeatSelectionChange = useCallback((seatIds: number[], totalPrice: number) => {
-    if (!bus) return
+    if (!show) return
 
-    // Convert seat IDs to SelectedSeat objects
-    // For now, we'll use the seat ID as seat number and bus price
-    // In a real implementation, this would come from the seat selection hook
     const seats: SelectedSeat[] = seatIds.map(id => ({
       seatId: id,
-      seatNo: `${id}`, // This should come from the actual seat data
-      price: bus.price // This should come from the actual seat pricing
+      seatNo: `${id}`,
+      price: show.base_price
     }))
 
     setSelectedSeats(seats)
-  }, [bus])
+  }, [show])
 
-  const handleContinueToPassengerDetails = () => {
+  const handleContinueToCustomerDetails = () => {
     if (selectedSeats.length === 0) {
       toast.error('Please select at least one seat')
       return
     }
-    setCurrentStep('passenger-details')
+    setCurrentStep('customer-details')
   }
 
-  const handleBackToSeatSelection = () => {
-    setCurrentStep('seat-selection')
-  }
-
-  const handleBookingSubmit = async (passengers: PassengerDetails[], contactDetails: ContactDetails) => {
-    if (!bus || !user) {
-      toast.error('Missing booking information')
+  const handleSubmitBooking = async (customers: CustomerDetails[], contactDetails: ContactDetails) => {
+    if (!show || !user || selectedSeats.length === 0) {
+      toast.error('Missing required booking information')
       return
     }
-
-    // Use bus.id as scheduleId since bus.id is actually the schedule_id from the database
-    const actualScheduleId = parseInt(bus.id)
 
     try {
       const bookingData = {
         userId: user.id,
-        busId: bus.id,
-        scheduleId: actualScheduleId,
+        showId: show.show_id,
         seatIds: selectedSeats.map(seat => seat.seatId),
-        passengers,
+        customers: customers,
         contactDetails
       }
 
-      const booking = await createBooking(bookingData)
+      const result = await createBooking(bookingData)
 
-      if (booking) {
-        toast.success('Booking created successfully!')
-        router.push(`/booking/confirmation?bookingId=${booking.id}`)
+      if (result) {
+        toast.success('Booking confirmed!')
+        router.push(`/booking/confirmation?bookingId=${result.bookingId}`)
+      } else {
+        toast.error('Booking failed')
       }
     } catch (error) {
-      toast.error('Failed to create booking. Please try again.')
+      toast.error('An error occurred while creating the booking')
     }
   }
 
-  const goBack = () => {
-    const backUrl = new URL('/results', window.location.origin)
-    searchParams.forEach((value, key) => {
-      if (key !== 'busId' && key !== 'scheduleId') {
-        backUrl.searchParams.set(key, value)
-      }
-    })
-    router.push(backUrl.toString())
+  const handleBack = () => {
+    if (currentStep === 'customer-details') {
+      setCurrentStep('seat-selection')
+    } else {
+      router.back()
+    }
   }
 
-  if (loading || !bus) {
+  if (loading) {
     return (
       <ProtectedRoute>
-        <div className="container mx-auto px-4 py-8">
-          <div className="space-y-4">
-            <div className="h-8 bg-muted rounded w-48 animate-pulse"></div>
-            <Card>
-              <CardContent className="p-8">
-                <div className="space-y-4 animate-pulse">
-                  <div className="h-6 bg-muted rounded w-1/3"></div>
-                  <div className="h-4 bg-muted rounded w-1/2"></div>
-                  <div className="h-64 bg-muted rounded"></div>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading show details...</p>
           </div>
+        </div>
+      </ProtectedRoute>
+    )
+  }
+
+  if (!show) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Card className="max-w-md">
+            <CardContent className="p-6 text-center">
+              <h3 className="text-lg font-semibold mb-2">Show Not Found</h3>
+              <p className="text-muted-foreground mb-4">The requested show could not be found.</p>
+              <Button onClick={() => router.push('/results')}>
+                Back to Search
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </ProtectedRoute>
     )
@@ -188,178 +178,109 @@ export default function BookingPage() {
 
   return (
     <ProtectedRoute>
-      <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={goBack}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Results
-        </Button>
+      <div className="min-h-screen bg-background">
+        <div className="border-b bg-card">
+          <div className="container mx-auto px-4 py-4">
+            <Button variant="ghost" onClick={handleBack} className="mb-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
 
-        <div className="flex flex-col space-y-2">
-          <h1 className="text-2xl font-bold">Book Your Journey</h1>
-          <div className="flex items-center space-x-4 text-muted-foreground">
-            <div className="flex items-center space-x-1">
-              <MapPin className="h-4 w-4" />
-              <span>{from} → {to}</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Clock className="h-4 w-4" />
-              <span>{date}</span>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                  <Film className="h-6 w-6" />
+                  {show.movie_title}
+                </h1>
+                <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    {show.theater_name} - {show.screen_name}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    {new Date(show.show_time).toLocaleString()}
+                  </span>
+                  <Badge variant="outline">{show.show_type}</Badge>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-semibold text-lg">{bus.operatorName}</h3>
-                  <p className="text-muted-foreground">{bus.busType.name}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-medium">{bus.operatorRating.toFixed(1)}</span>
-                </div>
-              </div>
+        <main className="container mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              {currentStep === 'seat-selection' ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Select Your Seats</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <SeatMap
+                      showId={show.show_id}
+                      onSelectionChange={handleSeatSelectionChange}
+                    />
+                  </CardContent>
+                </Card>
+              ) : (
+                <CustomerForm
+                  selectedSeats={selectedSeats}
+                  onSubmit={handleSubmitBooking}
+                  loading={bookingLoading}
+                />
+              )}
+            </div>
 
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <div className="text-lg font-bold">{bus.departureTime}</div>
-                  <div className="text-xs text-muted-foreground">Departure</div>
-                </div>
-
-                <div className="flex-1 flex items-center gap-2">
-                  <div className="flex-1 border-t border-dashed"></div>
-                  <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                    {Math.floor(bus.duration / 60)}h {bus.duration % 60}m
+            <div className="lg:col-span-1">
+              <Card className="sticky top-4">
+                <CardHeader>
+                  <CardTitle>Booking Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Selected Seats</h4>
+                    {selectedSeats.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedSeats.map(seat => (
+                          <Badge key={seat.seatId} variant="secondary">
+                            {seat.seatNo}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No seats selected</p>
+                    )}
                   </div>
-                  <div className="flex-1 border-t border-dashed"></div>
-                </div>
 
-                <div className="text-center">
-                  <div className="text-lg font-bold">{bus.arrivalTime}</div>
-                  <div className="text-xs text-muted-foreground">Arrival</div>
-                </div>
-              </div>
-            </div>
+                  <Separator />
 
-            <div className="text-right">
-              <div className="text-xl font-bold">₹{bus.price}</div>
-              <div className="text-xs text-muted-foreground">
-                <Users className="h-3 w-3 inline mr-1" />
-                {bus.availableSeats} seats left
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="mb-6">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              currentStep === 'seat-selection' ? 'bg-primary text-primary-foreground' : 'bg-green-500 text-white'
-            }`}>
-              1
-            </div>
-            <span className={currentStep === 'seat-selection' ? 'font-medium' : 'text-muted-foreground'}>
-              Select Seats
-            </span>
-          </div>
-
-          <Separator className="flex-1" />
-
-          <div className="flex items-center space-x-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              currentStep === 'passenger-details' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-            }`}>
-              2
-            </div>
-            <span className={currentStep === 'passenger-details' ? 'font-medium' : 'text-muted-foreground'}>
-              Passenger Details
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {currentStep === 'seat-selection' && (
-        <div className="space-y-6">
-          {bus && bus.id && user ? (
-            <SeatMap
-              scheduleId={parseInt(bus.id)} // Use bus.id as scheduleId since it's actually the schedule_id
-              userId={user.id}
-              onSeatSelectionChange={handleSeatSelectionChange}
-            />
-          ) : (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p className="text-muted-foreground">{ERROR_MESSAGES.INVALID_SCHEDULE}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {selectedSeats.length > 0 && (
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center">
-                  <div className="space-y-1">
-                    <p className="font-medium">
-                      {selectedSeats.length} seat{selectedSeats.length > 1 ? 's' : ''} selected
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Seats: {selectedSeats.map(s => s.seatNo).join(', ')}
-                    </p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Tickets ({selectedSeats.length})</span>
+                      <span>₹{selectedSeats.reduce((sum, seat) => sum + seat.price, 0)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-semibold">
+                      <span>Total</span>
+                      <span>₹{selectedSeats.reduce((sum, seat) => sum + seat.price, 0)}</span>
+                    </div>
                   </div>
-                  <Button
-                    onClick={handleContinueToPassengerDetails}
-                    size="lg"
-                  >
-                    Continue to Passenger Details
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
 
-      {currentStep === 'passenger-details' && (
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center">
-                <div className="space-y-1">
-                  <p className="font-medium">
-                    {selectedSeats.length} seat{selectedSeats.length > 1 ? 's' : ''} selected
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Seats: {selectedSeats.map(s => s.seatNo).join(', ')}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={handleBackToSeatSelection}
-                >
-                  Change Seats
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <PassengerForm
-            selectedSeats={selectedSeats}
-            onSubmit={handleBookingSubmit}
-            loading={bookingLoading}
-          />
-        </div>
-      )}
+                  {currentStep === 'seat-selection' && (
+                    <Button
+                      className="w-full"
+                      onClick={handleContinueToCustomerDetails}
+                      disabled={selectedSeats.length === 0}
+                    >
+                      Continue
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </main>
       </div>
     </ProtectedRoute>
   )

@@ -5,26 +5,38 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { MapPin, Star, Wifi, Zap, Snowflake, Users, ChevronDown, ChevronUp } from "lucide-react"
-import { Bus } from "@/lib/api"
+import { Film, Star, Clock, Calendar, MapPin, ChevronDown, ChevronUp } from "lucide-react"
 import { useSearchParams, useRouter } from "next/navigation"
+import type { Movie, MovieSearchResult } from "@/lib/api/movie"
+
+interface Show {
+  show_id: number
+  show_time: string
+  end_time: string
+  base_price: number
+  show_type: string
+  available_seats: number
+  screen_name: string
+  theater_name: string
+  theater_city: string
+}
 
 interface SearchResultsProps {
-  buses: Bus[]
+  movies: (Movie | MovieSearchResult)[]
+  shows?: Show[]
   loading: boolean
 }
 
-export function SearchResults({ buses, loading }: SearchResultsProps) {
-  const [expandedBus, setExpandedBus] = useState<string | null>(null)
-  const [sortBy, setSortBy] = useState("price")
+export function SearchResults({ movies, shows, loading }: SearchResultsProps) {
+  const [expandedMovie, setExpandedMovie] = useState<number | null>(null)
+  const [sortBy, setSortBy] = useState("title")
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const handleBookNow = (bus: Bus) => {
-    const bookingParams = new URLSearchParams(searchParams.toString())
-    bookingParams.set('busId', bus.id)
-    bookingParams.set('scheduleId', bus.id)
-    router.push(`/booking?${bookingParams.toString()}`)
+  const handleViewShowtimes = (movieId: number) => {
+    const showtimeParams = new URLSearchParams(searchParams.toString())
+    showtimeParams.set('movieId', movieId.toString())
+    router.push(`/showtimes?${showtimeParams.toString()}`)
   }
 
   const handleSortChange = (newSortBy: string) => {
@@ -34,33 +46,20 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
     router.push(`/results?${params.toString()}`)
   }
 
-  const getAmenityIcon = (amenity: string) => {
-    switch (amenity) {
-      case "wifi":
-        return <Wifi className="h-4 w-4" />
-      case "ac":
-        return <Snowflake className="h-4 w-4" />
-      case "charging":
-        return <Zap className="h-4 w-4" />
-      default:
-        return null
-    }
+  const toggleExpanded = (movieId: number) => {
+    setExpandedMovie(expandedMovie === movieId ? null : movieId)
   }
 
-  const toggleExpanded = (busId: string) => {
-    setExpandedBus(expandedBus === busId ? null : busId)
-  }
-
-  const sortedBuses = [...buses].sort((a, b) => {
+  const sortedMovies = [...movies].sort((a, b) => {
     switch (sortBy) {
-      case 'price':
-        return a.price - b.price
-      case 'departure':
-        return a.departureTime.localeCompare(b.departureTime)
-      case 'duration':
-        return a.duration - b.duration
+      case 'title':
+        return a.title.localeCompare(b.title)
       case 'rating':
-        return b.operatorRating - a.operatorRating
+        return (parseFloat(b.rating || '0') - parseFloat(a.rating || '0'))
+      case 'duration':
+        const aDuration = 'duration' in a ? a.duration : 0
+        const bDuration = 'duration' in b ? b.duration : 0
+        return aDuration - bDuration
       default:
         return 0
     }
@@ -86,10 +85,10 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
     )
   }
 
-  if (buses.length === 0) {
+  if (movies.length === 0) {
     return (
       <Card className="p-12 text-center">
-        <h3 className="text-lg font-semibold text-foreground mb-2">No buses found</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-2">No movies found</h3>
         <p className="text-muted-foreground">Try adjusting your search criteria or filters.</p>
       </Card>
     )
@@ -98,132 +97,86 @@ export function SearchResults({ buses, loading }: SearchResultsProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-foreground">{buses.length} buses found</h2>
-        <div className="flex items-center gap-2">
+        <p className="text-sm text-muted-foreground">
+          Found {movies.length} {movies.length === 1 ? 'movie' : 'movies'}
+        </p>
+        <div className="flex items-center space-x-2">
           <span className="text-sm text-muted-foreground">Sort by:</span>
           <select
             value={sortBy}
             onChange={(e) => handleSortChange(e.target.value)}
-            className="text-sm border border-border rounded-md px-3 py-1 bg-background"
+            className="border border-border rounded-md px-3 py-1 text-sm bg-background"
           >
-            <option value="price">Price</option>
-            <option value="departure">Departure Time</option>
-            <option value="duration">Duration</option>
+            <option value="title">Title</option>
             <option value="rating">Rating</option>
+            <option value="duration">Duration</option>
           </select>
         </div>
       </div>
 
-      {sortedBuses.map((bus) => (
-        <Card key={bus.id} className="p-6 hover:shadow-md transition-shadow">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex-1 space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-semibold text-foreground text-lg">{bus.operatorName}</h3>
-                  <p className="text-sm text-muted-foreground">{bus.busType.name}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-medium">{bus.operatorRating.toFixed(1)}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <div className="text-xl font-bold text-foreground">{bus.departureTime}</div>
-                  <div className="text-xs text-muted-foreground">Departure</div>
-                </div>
-
-                <div className="flex-1 flex items-center gap-2">
-                  <div className="flex-1 border-t border-dashed border-border"></div>
-                  <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">{Math.floor(bus.duration / 60)}h {bus.duration % 60}m</div>
-                  <div className="flex-1 border-t border-dashed border-border"></div>
-                </div>
-
-                <div className="text-center">
-                  <div className="text-xl font-bold text-foreground">{bus.arrivalTime}</div>
-                  <div className="text-xs text-muted-foreground">Arrival</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                {bus.amenities.slice(0, 3).map((amenity) => (
-                  <div key={amenity.id} className="flex items-center gap-1 text-muted-foreground">
-                    {getAmenityIcon(amenity.name.toLowerCase())}
-                    <span className="text-xs capitalize">{amenity.name}</span>
+      {sortedMovies.map((movie) => (
+        <Card key={movie.movie_id} className="overflow-hidden">
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Movie Poster */}
+              <div className="flex-shrink-0">
+                {movie.poster_url ? (
+                  <img
+                    src={movie.poster_url}
+                    alt={movie.title}
+                    className="w-full md:w-32 h-48 object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="w-full md:w-32 h-48 bg-muted rounded-lg flex items-center justify-center">
+                    <Film className="h-12 w-12 text-muted-foreground" />
                   </div>
-                ))}
-                {bus.amenities.length > 3 && (
-                  <span className="text-xs text-muted-foreground">+{bus.amenities.length - 3} more</span>
                 )}
               </div>
-            </div>
 
-            <div className="flex lg:flex-col items-center lg:items-end gap-4 lg:gap-2">
-              <div className="text-right">
-                <div className="text-2xl font-bold text-foreground">₹{bus.price}</div>
-                <div className="text-xs text-muted-foreground">
-                  <Users className="h-3 w-3 inline mr-1" />
-                  {bus.availableSeats} seats left
-                </div>
-              </div>
+              {/* Movie Details */}
+              <div className="flex-grow space-y-3">
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground mb-1">{movie.title}</h3>
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <Badge variant="outline">{movie.genre}</Badge>
+                        <Badge variant="outline">{movie.language}</Badge>
+                        {'duration' in movie && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {movie.duration} min
+                          </span>
+                        )}
+                        {movie.rating && (
+                          <span className="flex items-center gap-1">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            {movie.rating}/10
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="flex flex-col gap-2">
-                <Button
-                  onClick={() => handleBookNow(bus)}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  disabled={bus.availableSeats === 0}
-                >
-                  {bus.availableSeats === 0 ? 'Sold Out' : 'Select Seats'}
-                </Button>
-
-                <Button variant="outline" size="sm" onClick={() => toggleExpanded(bus.id)} className="text-xs">
-                  {expandedBus === bus.id ? (
-                    <>
-                      Less Info <ChevronUp className="h-3 w-3 ml-1" />
-                    </>
-                  ) : (
-                    <>
-                      More Info <ChevronDown className="h-3 w-3 ml-1" />
-                    </>
+                  {'description' in movie && movie.description && (
+                    <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                      {movie.description}
+                    </p>
                   )}
-                </Button>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <Button
+                    variant="default"
+                    onClick={() => handleViewShowtimes(movie.movie_id)}
+                    className="w-full md:w-auto"
+                  >
+                    View Showtimes
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-
-          {expandedBus === bus.id && (
-            <>
-              <Separator className="my-4" />
-              <div className="space-y-3">
-                <div>
-                  <h4 className="font-medium text-foreground mb-2">All Amenities</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {bus.amenities.map((amenity) => (
-                      <Badge key={amenity.id} variant="secondary" className="text-xs">
-                        {amenity.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium text-foreground mb-2">Bus Details</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div className="space-y-2">
-                      <div>Bus Type: {bus.busType.name}</div>
-                      <div>Total Seats: {bus.totalSeats}</div>
-                    </div>
-                    <div className="space-y-2">
-                      <div>Category: {bus.busType.category}</div>
-                      <div>Available: {bus.availableSeats}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </Card>
       ))}
     </div>

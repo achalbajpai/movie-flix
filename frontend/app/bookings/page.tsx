@@ -26,7 +26,9 @@ import {
   Loader2,
   Eye,
   Home,
-  ChevronRight
+  ChevronRight,
+  Film,
+  Theater
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -65,8 +67,8 @@ export default function BookingsPage() {
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch =
       String(booking.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.bus?.operatorName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.bus?.route?.toLowerCase().includes(searchQuery.toLowerCase())
+      booking.show?.movieTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.show?.theaterName?.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter
 
@@ -87,14 +89,14 @@ export default function BookingsPage() {
   }
 
   const canCancelBooking = (booking: BookingResponse) => {
-    if (!booking.journeyDate) return false
+    if (!booking.show?.showTime) return false
 
-    const journeyDate = new Date(booking.journeyDate)
+    const showTime = new Date(booking.show.showTime)
     const now = new Date()
-    const timeDifference = journeyDate.getTime() - now.getTime()
+    const timeDifference = showTime.getTime() - now.getTime()
     const hoursDifference = timeDifference / (1000 * 3600)
 
-    // Allow cancellation if booking is confirmed and journey is more than 2 hours away
+    // Allow cancellation if booking is confirmed and show is more than 2 hours away
     return booking.status === 'confirmed' && hoursDifference > 2
   }
 
@@ -104,11 +106,19 @@ export default function BookingsPage() {
     }
 
     try {
-      await cancelBooking(bookingId, user.id)
-      toast.success('Booking cancelled successfully')
-      fetchUserBookings() // Refresh the list
+      console.log('Cancelling booking:', bookingId, 'for user:', user.id)
+      const result = await cancelBooking(bookingId, user.id)
+      console.log('Cancel booking result:', result)
+
+      if (result) {
+        toast.success('Booking cancelled successfully')
+        await fetchUserBookings() // Refresh the list
+      } else {
+        toast.error('Failed to cancel booking - booking could not be cancelled')
+      }
     } catch (error) {
-      toast.error('Failed to cancel booking')
+      console.error('Error cancelling booking:', error)
+      toast.error(`Failed to cancel booking: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -134,7 +144,7 @@ export default function BookingsPage() {
           <div className="max-w-6xl mx-auto">
             <div className="mb-6">
               <h1 className="text-2xl font-bold mb-2">My Bookings</h1>
-              <p className="text-muted-foreground">View and manage your bus bookings</p>
+              <p className="text-muted-foreground">View and manage your movie bookings</p>
             </div>
 
             <div className="space-y-4">
@@ -178,14 +188,14 @@ export default function BookingsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold mb-2">My Bookings</h1>
-              <p className="text-muted-foreground">View and manage your bus bookings</p>
+              <p className="text-muted-foreground">View and manage your movie bookings</p>
             </div>
             <Button
               onClick={() => router.push('/')}
               className="flex items-center gap-2"
             >
               <Search className="h-4 w-4" />
-              Search New Bus
+              Search Movies
             </Button>
           </div>
         </div>
@@ -197,7 +207,7 @@ export default function BookingsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by booking ID, operator, or route..."
+                    placeholder="Search by booking ID, movie, or theater..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10"
@@ -230,11 +240,11 @@ export default function BookingsPage() {
               <p className="text-muted-foreground mb-6">
                 {searchQuery || statusFilter !== 'all'
                   ? 'No bookings match your search criteria.'
-                  : "You haven't made any bookings yet. Start planning your next journey!"}
+                  : "You haven't made any bookings yet. Start planning your next movie!"}
               </p>
               {!searchQuery && statusFilter === 'all' && (
                 <Button onClick={() => router.push('/')}>
-                  Book Your First Trip
+                  Book Your First Movie
                 </Button>
               )}
             </CardContent>
@@ -249,7 +259,7 @@ export default function BookingsPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="font-semibold text-lg">{booking.bus?.operatorName || 'Unknown Operator'}</h3>
+                            <h3 className="font-semibold text-lg">{booking.show?.movieTitle || 'Unknown Movie'}</h3>
                             <Badge className={getStatusColor(booking.status)}>
                               {booking.status}
                             </Badge>
@@ -262,10 +272,10 @@ export default function BookingsPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="flex items-center space-x-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <Theater className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm font-medium">{booking.bus?.route || 'Route not available'}</p>
-                            <p className="text-xs text-muted-foreground">Route</p>
+                            <p className="text-sm font-medium">{booking.show?.theaterName || 'Theater not available'}</p>
+                            <p className="text-xs text-muted-foreground">{booking.show?.screenName || 'Screen not available'}</p>
                           </div>
                         </div>
 
@@ -273,17 +283,22 @@ export default function BookingsPage() {
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <p className="text-sm font-medium">
-                              {booking.journeyDate ? new Date(booking.journeyDate).toLocaleDateString('en-IN') : 'Date not available'}
+                              {booking.show?.showTime ? new Date(booking.show.showTime).toLocaleDateString('en-IN') : 'Date not available'}
                             </p>
-                            <p className="text-xs text-muted-foreground">Journey Date</p>
+                            <p className="text-xs text-muted-foreground">Show Date</p>
                           </div>
                         </div>
 
                         <div className="flex items-center space-x-2">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm font-medium">{booking.bus?.departureTime || 'Time not available'}</p>
-                            <p className="text-xs text-muted-foreground">Departure</p>
+                            <p className="text-sm font-medium">
+                              {booking.show?.showTime ? new Date(booking.show.showTime).toLocaleTimeString('en-IN', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }) : 'Time not available'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{booking.show?.showType || 'Show Type'}</p>
                           </div>
                         </div>
                       </div>
@@ -293,7 +308,7 @@ export default function BookingsPage() {
                           <div className="flex items-center space-x-1">
                             <Users className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">
-                              {booking.passengers?.length || 0} passenger{(booking.passengers?.length || 0) > 1 ? 's' : ''}
+                              {booking.customers?.length || 0} customer{(booking.customers?.length || 0) > 1 ? 's' : ''}
                             </span>
                           </div>
                           <div className="text-sm">

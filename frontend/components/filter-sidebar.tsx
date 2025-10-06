@@ -10,7 +10,12 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { X, Filter } from "lucide-react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { SearchFilters } from "@/lib/api"
+
+interface SearchFilters {
+  priceRange?: { min: number; max: number }
+  availableOperators?: Array<{ name: string }>
+  availableBusTypes?: Array<{ name: string }>
+}
 
 interface FilterSidebarProps {
   filters: SearchFilters | null

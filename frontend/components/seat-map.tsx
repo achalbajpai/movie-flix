@@ -17,13 +17,13 @@ import {
 } from 'lucide-react'
 
 interface SeatMapProps {
-  scheduleId: number
-  userId: string
-  onSeatSelectionChange?: (seatIds: number[], totalPrice: number) => void
+  showId: number
+  userId?: string
+  onSelectionChange?: (seatIds: number[], totalPrice: number) => void
   className?: string
 }
 
-export function SeatMap({ scheduleId, userId, onSeatSelectionChange, className }: SeatMapProps) {
+export function SeatMap({ showId, userId = '', onSelectionChange, className }: SeatMapProps) {
   const {
     layout,
     selectedSeats,
@@ -38,11 +38,11 @@ export function SeatMap({ scheduleId, userId, onSeatSelectionChange, className }
     getTotalPrice,
     formatTime,
     clearSelection
-  } = useSeatSelection(scheduleId, userId)
+  } = useSeatSelection(showId, userId)
 
   React.useEffect(() => {
-    if (onSeatSelectionChange) {
-      onSeatSelectionChange(selectedSeats, getTotalPrice())
+    if (onSelectionChange) {
+      onSelectionChange(selectedSeats, getTotalPrice())
     }
   }, [selectedSeats, pricing])
 

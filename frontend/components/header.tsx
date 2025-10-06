@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from "@/components/ui/button"
-import { Bus, Menu } from "lucide-react"
+import { Film, Menu } from "lucide-react"
 import Link from "next/link"
 import { LoginButton } from "@/components/auth/login-button"
 import { UserMenu } from "@/components/auth/user-menu"
@@ -16,8 +16,8 @@ export function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <Bus className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-foreground">BusGo</span>
+            <Film className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold text-foreground">MovieFlix</span>
           </Link>
 
           <div className="flex items-center gap-3">

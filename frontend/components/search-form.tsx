@@ -6,9 +6,10 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeftRight, MapPin, Calendar, Search, ChevronDown } from "lucide-react"
+import { MapPin, Calendar, Search, ChevronDown, Film } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useCities } from "@/lib/hooks"
+import { useCities, useNowShowing } from "@/lib/hooks"
+import type { Movie } from "@/lib/api/movie"
 
 interface CityDropdownProps {
   label: string
@@ -96,90 +97,145 @@ function CityDropdown({ label, value, onChange, placeholder }: CityDropdownProps
   )
 }
 
+interface MovieDropdownProps {
+  label: string
+  value: string
+  onChange: (value: string, movieId?: number) => void
+  placeholder: string
+}
+
+function MovieDropdown({ label, value, onChange, placeholder }: MovieDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState(value)
+  const { movies, fetchNowShowing, loading } = useNowShowing()
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Fetch movies when component mounts or when dropdown opens
+    if (isOpen && movies.length === 0) {
+      fetchNowShowing()
+    }
+  }, [isOpen, fetchNowShowing, movies.length])
+
+  useEffect(() => {
+    setSearchQuery(value)
+  }, [value])
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleMovieSelect = (movie: Movie) => {
+    onChange(movie.title, movie.movie_id)
+    setSearchQuery(movie.title)
+    setIsOpen(false)
+  }
+
+  const filteredMovies = movies.filter(movie =>
+    movie.title.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium text-foreground">{label}</Label>
+      <div className="relative" ref={dropdownRef}>
+        <div className="relative">
+          <Film className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
+          <Input
+            placeholder={placeholder}
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              onChange(e.target.value)
+              setIsOpen(true)
+            }}
+            onFocus={() => setIsOpen(true)}
+            className="pl-10 pr-10 h-12 text-base"
+          />
+          <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+        </div>
+
+        {isOpen && (
+          <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+            {loading ? (
+              <div className="p-3 text-sm text-muted-foreground">Loading movies...</div>
+            ) : filteredMovies.length > 0 ? (
+              filteredMovies.map((movie) => (
+                <button
+                  key={movie.movie_id}
+                  onClick={() => handleMovieSelect(movie)}
+                  className="w-full text-left p-3 hover:bg-accent hover:text-accent-foreground text-sm border-b border-border last:border-b-0"
+                >
+                  <div className="font-medium">{movie.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {movie.genre} • {movie.language}
+                  </div>
+                </button>
+              ))
+            ) : movies.length > 0 && searchQuery ? (
+              <div className="p-3 text-sm text-muted-foreground">No movies match your search</div>
+            ) : (
+              <div className="p-3 text-sm text-muted-foreground">Click to see available movies</div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function SearchForm() {
   const router = useRouter()
   const [searchData, setSearchData] = useState({
-    from: "",
-    to: "",
+    city: "",
     date: "",
-    passengers: 1,
+    movieTitle: "",
+    movieId: undefined as number | undefined,
   })
-  const [error, setError] = useState("")
-
-  const handleSwapLocations = () => {
-    setSearchData((prev) => ({
-      ...prev,
-      from: prev.to,
-      to: prev.from,
-    }))
-  }
 
   const handleSearch = () => {
-    setError("")
+    const params = new URLSearchParams()
 
-    if (searchData.from.toLowerCase().trim() === searchData.to.toLowerCase().trim()) {
-      setError("Source and destination cannot be the same")
-      return
-    }
+    if (searchData.city) params.append('city', searchData.city)
+    if (searchData.date) params.append('date', searchData.date)
+    if (searchData.movieTitle) params.append('movie', searchData.movieTitle)
+    if (searchData.movieId) params.append('movieId', searchData.movieId.toString())
 
-    const params = new URLSearchParams({
-      source: searchData.from,
-      destination: searchData.to,
-      departureDate: searchData.date,
-      passengers: searchData.passengers.toString(),
-    })
     router.push(`/results?${params.toString()}`)
   }
 
   return (
     <Card className="p-8 shadow-lg border-0 bg-card">
-      {/* Main Search Fields */}
       <div className="space-y-6">
-        {/* From/To Row */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-          <div className="md:col-span-2">
-            <CityDropdown
-              label="From"
-              value={searchData.from}
-              onChange={(value) => {
-                setSearchData((prev) => ({ ...prev, from: value }))
-                if (error) setError("") // Clear error when location changes
-              }}
-              placeholder="Departure city"
-            />
-          </div>
+        {/* Movie Title (Optional) */}
+        <MovieDropdown
+          label="Movie (Optional)"
+          value={searchData.movieTitle}
+          onChange={(title, movieId) => setSearchData((prev) => ({ ...prev, movieTitle: title, movieId }))}
+          placeholder="Search for a movie..."
+        />
 
-          {/* Swap Button */}
-          <div className="flex items-center justify-center">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleSwapLocations}
-              className="h-12 w-12 rounded-full border-2 hover:bg-accent bg-transparent"
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="md:col-span-2">
-            <CityDropdown
-              label="To"
-              value={searchData.to}
-              onChange={(value) => {
-                setSearchData((prev) => ({ ...prev, to: value }))
-                if (error) setError("") 
-              }}
-              placeholder="Destination city"
-            />
-          </div>
-        </div>
-
-        {/* Date and Passengers Row */}
+        {/* City and Date Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Departure Date */}
+          {/* City */}
+          <CityDropdown
+            label="City"
+            value={searchData.city}
+            onChange={(value) => setSearchData((prev) => ({ ...prev, city: value }))}
+            placeholder="Select your city"
+          />
+
+          {/* Date */}
           <div className="space-y-2">
             <Label htmlFor="date" className="text-sm font-medium text-foreground">
-              Departure Date
+              Date
             </Label>
             <div className="relative">
               <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -193,47 +249,18 @@ export function SearchForm() {
               />
             </div>
           </div>
-
-
-          {/* Passengers */}
-          <div className="space-y-2">
-            <Label htmlFor="passengers" className="text-sm font-medium text-foreground">
-              Passengers
-            </Label>
-            <Select
-              value={searchData.passengers.toString()}
-              onValueChange={(value) => setSearchData((prev) => ({ ...prev, passengers: parseInt(value) }))}
-            >
-              <SelectTrigger className="h-12 text-base">
-                <SelectValue placeholder="Select passengers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1 Passenger</SelectItem>
-                <SelectItem value="2">2 Passengers</SelectItem>
-                <SelectItem value="3">3 Passengers</SelectItem>
-                <SelectItem value="4">4 Passengers</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="mt-6 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-          <p className="text-sm text-destructive font-medium">{error}</p>
-        </div>
-      )}
 
       {/* Search Button */}
       <div className="mt-8">
         <Button
           onClick={handleSearch}
           className="w-full h-14 text-lg font-semibold"
-          disabled={!searchData.from || !searchData.to || !searchData.date}
+          disabled={!searchData.city && !searchData.movieTitle}
         >
           <Search className="h-5 w-5 mr-2" />
-          Search Buses
+          Search Movies
         </Button>
       </div>
     </Card>
