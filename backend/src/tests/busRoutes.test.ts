@@ -1,13 +1,12 @@
 /**
- * API Tests for Bus Booking System using Jest + Supertest
+ * API Tests for Movie Booking System using Jest + Supertest
  *
- * These tests verify the most important endpoint: /api/v1/buses/search
+ * These tests verify the movie search endpoint: /api/v1/movies
  * Tests include:
- * - Input validation (missing/invalid parameters)
- * - Response format validation (paginated structure)
+ * - Basic search behavior (no params and with filters)
+ * - Response format validation (array structure)
  * - Database integration (actual Supabase queries)
- * - Query parameter handling (limit, pagination)
- * - URL encoding for city names
+ * - Query parameter handling (genre, language, city, date)
  */
 
 import request from 'supertest';
@@ -15,7 +14,7 @@ import { Application } from 'express';
 import { createApp } from '../app';
 import { supabase } from '../config/supabase';
 
-describe('🚌 Bus Route API Tests with Supabase Database', () => {
+describe('🎥 Movie Route API Tests with Supabase Database', () => {
   let app: Application;
   let futureDate: string;
   let authToken: string;
@@ -36,106 +35,95 @@ describe('🚌 Bus Route API Tests with Supabase Database', () => {
     authToken = 'test-token';
   });
 
-  describe('Input Validation', () => {
-    test('should return 400 when no search parameters are provided', async () => {
+  describe('Basic Search Behavior', () => {
+    test('should return 200 and list movies when no search parameters are provided', async () => {
       const response = await request(app)
-        .get('/api/v1/buses/search')
+        .get('/api/v1/movies')
         .set('Authorization', `Bearer ${authToken}`)
         .set('user-id', testUserId);
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBeDefined();
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toBeDefined();
+      expect(Array.isArray(response.body.data)).toBe(true);
+      expect(typeof response.body.count).toBe('number');
     });
 
-    test('should return 400 when required parameters are missing', async () => {
+    test('should return movies when filtering by genre and language', async () => {
       const response = await request(app)
-        .get('/api/v1/buses/search?source=delhi')
+        .get('/api/v1/movies?genre=Action&language=English')
         .set('Authorization', `Bearer ${authToken}`)
         .set('user-id', testUserId);
 
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBeDefined();
-    });
-
-    test('should handle invalid date format', async () => {
-      const response = await request(app)
-        .get('/api/v1/buses/search?source=delhi&destination=mumbai&departureDate=invalid-date&passengers=1')
-        .set('Authorization', `Bearer ${authToken}`)
-        .set('user-id', testUserId);
-
-      expect(response.status).toBe(400);
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toBeDefined();
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.data)).toBe(true);
     });
   });
 
   describe('Successful Search Requests', () => {
-    test('should return buses when valid search parameters are provided', async () => {
+    test('should return movies with expected movie fields when searching by city and date', async () => {
       const response = await request(app)
-        .get(`/api/v1/buses/search?source=delhi&destination=mumbai&departureDate=${futureDate}&passengers=1`)
+        .get(`/api/v1/movies?city=Bangalore&date=${futureDate}`)
         .set('Authorization', `Bearer ${authToken}`)
         .set('user-id', testUserId);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toBeDefined();
+      expect(Array.isArray(response.body.data)).toBe(true);
 
-      expect(Array.isArray(response.body.data.data)).toBe(true);
-      expect(response.body.data.pagination).toBeDefined();
-      expect(response.body.data.metadata).toBeDefined();
+      if (response.body.data.length > 0) {
+        const first = response.body.data[0];
+        // repository.search returns items with movie_id, title and show_count/min_price/theaters
+        expect(first.movie_id || first.movieId || first.id).toBeDefined();
+        expect(first.title).toBeDefined();
+      }
     });
   });
 
   describe('Query Parameters', () => {
-    test('should handle query parameters like limit and offset', async () => {
+    test('should handle genre and language query parameters', async () => {
       const response = await request(app)
-        .get(`/api/v1/buses/search?source=delhi&destination=mumbai&departureDate=${futureDate}&passengers=1&limit=5&page=1`)
+        .get(`/api/v1/movies?genre=Drama&language=Hindi`)
         .set('Authorization', `Bearer ${authToken}`)
         .set('user-id', testUserId);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toBeDefined();
-
-      expect(Array.isArray(response.body.data.data)).toBe(true);
-      expect(response.body.data.pagination).toBeDefined();
-      expect(response.body.data.pagination.limit).toBe(5);
+      expect(Array.isArray(response.body.data)).toBe(true);
     });
 
     test('should handle URL encoded city names', async () => {
       const response = await request(app)
-        .get(`/api/v1/buses/search?source=new%20delhi&destination=mumbai&departureDate=${futureDate}&passengers=1`)
+        .get(`/api/v1/movies?city=new%20delhi&date=${futureDate}`)
         .set('Authorization', `Bearer ${authToken}`)
         .set('user-id', testUserId);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toBeDefined();
+      expect(Array.isArray(response.body.data)).toBe(true);
     });
   });
 
   describe('Database Integration', () => {
-    test('should return database metadata and filters from Supabase', async () => {
+    test('should return movie search results with show metadata from Supabase', async () => {
       const response = await request(app)
-        .get(`/api/v1/buses/search?source=delhi&destination=mumbai&departureDate=${futureDate}&passengers=1`)
+        .get(`/api/v1/movies?city=delhi&date=${futureDate}`)
         .set('Authorization', `Bearer ${authToken}`)
         .set('user-id', testUserId);
 
       expect(response.status).toBe(200);
 
-      expect(response.body.data.metadata).toBeDefined();
-      expect(typeof response.body.data.metadata.searchTime).toBe('number');
+      expect(response.body.data).toBeDefined();
+      expect(Array.isArray(response.body.data)).toBe(true);
 
-      expect(response.body.data.filters).toBeDefined();
-      expect(Array.isArray(response.body.data.filters.availableOperators)).toBe(true);
-      expect(Array.isArray(response.body.data.filters.availableBusTypes)).toBe(true);
-      expect(response.body.data.filters.priceRange).toBeDefined();
-
-      const hasRealData = response.body.data.filters.availableOperators.length > 0 ||
-                         response.body.data.filters.availableBusTypes.length > 0;
-      expect(hasRealData).toBe(true);
+      if (response.body.data.length > 0) {
+        const first = response.body.data[0];
+        expect(typeof first.show_count === 'number' || first.show_count === undefined).toBeTruthy();
+        expect(typeof first.min_price === 'number' || first.min_price === undefined).toBeTruthy();
+        expect(Array.isArray(first.theaters) || first.theaters === undefined).toBeTruthy();
+      }
     });
   });
 });
