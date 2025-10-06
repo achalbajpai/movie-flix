@@ -206,36 +206,55 @@ export class SupabaseBookingRepository implements IBookingRepository {
 
   async cancel(bookingId: number, cancelData: CancelBookingRequest): Promise<BookingResponse> {
     try {
+      logger.info('[Repository] Cancelling booking', { bookingId, cancelData })
+
       // Get booking details first to release seats
       const booking = await this.findById(bookingId)
-      if (!booking) throw new Error('Booking not found')
+      if (!booking) {
+        logger.error('[Repository] Booking not found', { bookingId })
+        throw new Error('Booking not found')
+      }
+
+      logger.info('[Repository] Current booking status', { bookingId, currentStatus: booking.status })
 
       // Update booking status to cancelled
-      const { error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('Booking')
         .update({
           status: 'cancelled',
           updated_at: new Date().toISOString()
         })
         .eq('booking_id', bookingId)
+        .select()
 
-      if (updateError) throw new Error(`Failed to cancel booking: ${updateError.message}`)
+      if (updateError) {
+        logger.error('[Repository] Failed to update booking status', { error: updateError.message, bookingId })
+        throw new Error(`Failed to cancel booking: ${updateError.message}`)
+      }
+
+      logger.info('[Repository] Booking status updated to cancelled', { bookingId, updateData })
 
       // Release seats
       const seatIds = booking.customers.map(c => c.seat_id)
-      const { error: seatError } = await supabase
+      const { data: seatData, error: seatError } = await supabase
         .from('Seat')
         .update({ is_reserved: false })
         .in('seat_id', seatIds)
+        .select()
 
       if (seatError) {
-        logger.warn('Failed to release seats after cancellation', { error: seatError.message, seatIds })
+        logger.warn('[Repository] Failed to release seats after cancellation', { error: seatError.message, seatIds })
+      } else {
+        logger.info('[Repository] Seats released successfully', { seatIds, seatData })
       }
 
-      return await this.findById(bookingId) as BookingResponse
+      const cancelledBooking = await this.findById(bookingId) as BookingResponse
+      logger.info('[Repository] Cancelled booking retrieved', { bookingId, newStatus: cancelledBooking.status })
+
+      return cancelledBooking
 
     } catch (error) {
-      logger.error('Error cancelling booking', { error: (error as Error).message, bookingId, cancelData })
+      logger.error('[Repository] Error cancelling booking', { error: (error as Error).message, bookingId, cancelData })
       throw error
     }
   }
@@ -707,6 +726,11 @@ export class SupabaseBookingRepository implements IBookingRepository {
   }
 
   private transformBookingData(booking: any): BookingResponse {
+    // Extract contact details from the first booking seat (all seats have same contact info)
+    const firstSeat = booking.Booking_seat?.[0]
+    const contactEmail = firstSeat?.customer_email || ''
+    const contactPhone = firstSeat?.customer_phone || ''
+
     return {
       booking_id: booking.booking_id,
       user_id: booking.user_id,
@@ -720,6 +744,8 @@ export class SupabaseBookingRepository implements IBookingRepository {
         ticket_id: bs.ticket_id,
         seat_id: bs.seat_id,
         seat_no: bs.Seat?.seat_no,
+        row_number: bs.Seat?.row_number || 'A',
+        column_number: bs.Seat?.column_number || 1,
         customer_name: bs.customer_name,
         customer_age: bs.customer_age,
         customer_email: bs.customer_email,
@@ -760,8 +786,8 @@ export class SupabaseBookingRepository implements IBookingRepository {
         } : {} as any
       },
       contactDetails: {
-        email: booking.contact_email || '',
-        phone: booking.contact_phone || ''
+        email: contactEmail,
+        phone: contactPhone
       }
     }
   }

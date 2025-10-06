@@ -116,21 +116,43 @@ export const createBookingController = (bookingService: IBookingService) => {
   const cancelBooking = asyncHandler(async (req: Request, res: Response) => {
     const validationResult = validate.bookingId(req.params)
     if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid booking ID parameter')
+      logger.error('Booking ID validation failed', {
+        errors: validationResult.errors,
+        params: req.params
+      })
+      return res.status(400).json(ResponseBuilder.error({
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid booking ID parameter',
+        details: validationResult.errors
+      }))
     }
     const { id } = validationResult.data as any
 
     const cancelValidationResult = validate.cancelBooking(req.body)
     if (!cancelValidationResult.success || !cancelValidationResult.data) {
-      throw new Error('Invalid cancellation data')
+      logger.error('Cancellation data validation failed', {
+        errors: cancelValidationResult.errors,
+        body: req.body
+      })
+      return res.status(400).json(ResponseBuilder.error({
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid cancellation data',
+        details: cancelValidationResult.errors
+      }))
     }
     const cancelData = cancelValidationResult.data as any
 
-    const userId = req.body.userId || req.headers['user-id'] as string
+    const userId = cancelData.userId || req.body.userId || req.headers['user-id'] as string
 
     if (!userId) {
-      throw new Error('User ID is required')
+      logger.error('User ID missing', { body: req.body, headers: req.headers })
+      return res.status(400).json(ResponseBuilder.error({
+        code: 'MISSING_USER_ID',
+        message: 'User ID is required for cancellation'
+      }))
     }
+
+    logger.info('Cancelling booking', { bookingId: id, userId })
 
     const booking = await bookingService.cancelBooking(id, userId, cancelData)
 

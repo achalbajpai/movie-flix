@@ -114,7 +114,7 @@ export default function BookingConfirmationPage() {
               Booking Confirmed!
             </h1>
             <p className="text-green-700">
-              Your bus ticket has been booked successfully.
+              Your movie tickets have been booked successfully.
               Confirmation details have been sent to your email and phone.
             </p>
           </CardContent>
@@ -149,24 +149,24 @@ export default function BookingConfirmationPage() {
             <Separator />
 
             <div className="space-y-4">
-              <h3 className="font-semibold">Journey Information</h3>
+              <h3 className="font-semibold">Show Information</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Route</p>
-                      <p className="font-medium">{booking.bus?.route || 'Route not available'}</p>
+                      <p className="text-sm text-muted-foreground">Movie</p>
+                      <p className="font-medium">{booking.show?.movieTitle || 'Movie not available'}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Journey Date</p>
+                      <p className="text-sm text-muted-foreground">Show Date</p>
                       <p className="font-medium">
-                        {booking.journeyDate ? new Date(booking.journeyDate).toLocaleDateString('en-IN', {
+                        {booking.showDate ? new Date(booking.showDate).toLocaleDateString('en-IN', {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',
@@ -181,16 +181,16 @@ export default function BookingConfirmationPage() {
                   <div className="flex items-center space-x-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Departure Time</p>
-                      <p className="font-medium">{booking.bus?.departureTime || 'Time not available'}</p>
+                      <p className="text-sm text-muted-foreground">Show Time</p>
+                      <p className="font-medium">{booking.show?.showTime || 'Time not available'}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Operator</p>
-                      <p className="font-medium">{booking.bus?.operatorName || 'Unknown Operator'}</p>
+                      <p className="text-sm text-muted-foreground">Theater</p>
+                      <p className="font-medium">{booking.show?.theaterName || 'Unknown Theater'}</p>
                     </div>
                   </div>
                 </div>
@@ -200,25 +200,25 @@ export default function BookingConfirmationPage() {
             <Separator />
 
             <div className="space-y-4">
-              <h3 className="font-semibold">Passenger Information</h3>
+              <h3 className="font-semibold">Customer Information</h3>
 
               <div className="space-y-3">
-                {booking.passengers?.map((passenger, index) => (
+                {booking.customers?.map((customer, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <Badge variant="outline">
                         Seat {booking.seats?.[index]?.seatNo || `${index + 1}`}
                       </Badge>
                       <div>
-                        <p className="font-medium">{passenger.name}</p>
+                        <p className="font-medium">{customer.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {passenger.age} years, {passenger.gender}
+                          {customer.age} years, {customer.gender}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-1 text-sm font-medium">
                       <IndianRupee className="h-3 w-3" />
-                      {booking.seats?.[index]?.price || booking.totalAmount / (booking.passengers?.length || 1)}
+                      {booking.seats?.[index]?.price || booking.totalAmount / (booking.customers?.length || 1)}
                     </div>
                   </div>
                 ))}
@@ -256,7 +256,7 @@ export default function BookingConfirmationPage() {
 
               <div className="bg-muted/50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Base Fare ({booking.passengers?.length || 0} passenger{(booking.passengers?.length || 0) > 1 ? 's' : ''})</span>
+                  <span>Base Fare ({booking.customers?.length || 0} customer{(booking.customers?.length || 0) > 1 ? 's' : ''})</span>
                   <span>₹{booking.totalAmount}</span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -280,10 +280,10 @@ export default function BookingConfirmationPage() {
           <CardContent className="p-6">
             <h3 className="font-semibold mb-3">Important Information</h3>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>• Please arrive at the boarding point at least 15 minutes before departure time</p>
-              <p>• Carry a valid photo ID proof during the journey</p>
-              <p>• Cancellation charges may apply as per the operator's policy</p>
-              <p>• For any queries, contact customer support or the bus operator</p>
+              <p>• Please arrive at the theater at least 15 minutes before show time</p>
+              <p>• Carry a valid photo ID proof for entry</p>
+              <p>• Cancellation charges may apply as per the theater's policy</p>
+              <p>• For any queries, contact customer support or the theater</p>
             </div>
           </CardContent>
         </Card>
@@ -314,7 +314,7 @@ export default function BookingConfirmationPage() {
             size="lg"
           >
             <Home className="h-4 w-4 mr-2" />
-            Book Another Trip
+            Book Another Movie
           </Button>
         </div>
         </div>

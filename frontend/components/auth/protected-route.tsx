@@ -47,10 +47,10 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
             <div className="space-y-4">
               <div className="flex items-center justify-center lg:justify-start gap-3">
                 <Bus className="h-12 w-12 text-blue-600 dark:text-blue-600" />
-                <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-900">BusGo</h1>
+                <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-900">MovieFlix</h1>
               </div>
               <p className="text-xl text-gray-600 dark:text-gray-600">
-                Your trusted travel companion for seamless bus bookings
+                Find and book movie tickets at theaters near you
               </p>
             </div>
 
@@ -81,7 +81,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
                 </div>
                 <h3 className="font-semibold text-gray-900 dark:text-gray-900">Trusted by Thousands</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-600 text-center lg:text-left">
-                  Join our community of travelers
+                  Join our community of movie enthusiasts
                 </p>
               </div>
             </div>
@@ -93,7 +93,7 @@ export function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
               <CardHeader className="text-center pb-4">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-900">Welcome Back</h2>
                 <p className="text-gray-600 dark:text-gray-600">
-                  Sign in to access your booking dashboard and manage your travel plans
+                  Sign in to access your booking dashboard and manage your movie plans
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">

@@ -46,6 +46,7 @@ export const SeatReservationSchema = z.object({
 })
 
 export const CancelBookingSchema = z.object({
+  userId: z.string().min(1, 'User ID is required').optional(), // Optional because it can come from headers
   reason: z.string().max(500, 'Reason too long').optional(),
   refundAmount: z.number().min(0, 'Refund amount cannot be negative').optional()
 })
