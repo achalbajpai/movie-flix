@@ -1,5 +1,6 @@
 import { supabase } from '@/config/supabase'
 import { logger } from '@/config'
+import { PoolClient } from 'pg'
 import {
   IBookingRepository,
   BookingResponse,
@@ -18,57 +19,104 @@ export class SupabaseBookingRepository implements IBookingRepository {
 
   async create(bookingData: CreateBookingData): Promise<BookingResponse> {
     try {
-      // Start transaction by creating booking first
-      const { data: booking, error: bookingError } = await supabase
-        .from('Booking')
-        .insert({
-          user_id: bookingData.userId,
-          show_id: bookingData.showId,
-          status: 'confirmed',
-          total_amt: bookingData.totalAmount
-        })
-        .select('*')
-        .single()
+      logger.info('Creating atomic booking', {
+        userId: bookingData.userId,
+        showId: bookingData.showId,
+        seatCount: bookingData.seats.length
+      })
 
-      if (bookingError) throw new Error(`Failed to create booking: ${bookingError.message}`)
-
-      // Create booking seats with customer details
-      // Use contact details from bookingData for all seats, or individual customer details if provided
-      const bookingSeats = bookingData.seats.map(seat => ({
-        booking_id: booking.booking_id,
-        seat_id: seat.seatId,
-        customer_name: seat.customer.name,
-        customer_age: seat.customer.age,
+      const customers = bookingData.seats.map(seat => ({
+        seatId: seat.seatId,
+        name: seat.customer.name,
+        age: seat.customer.age,
         gender: seat.customer.gender,
-        customer_email: bookingData.contactDetails.email, // Use booking-level contact email
-        customer_phone: bookingData.contactDetails.phone  // Use booking-level contact phone
+        email: bookingData.contactDetails.email,
+        phone: bookingData.contactDetails.phone
       }))
 
-      const { error: seatsError } = await supabase
-        .from('Booking_seat')
-        .insert(bookingSeats)
+      const { data, error } = await supabase.rpc('create_atomic_booking', {
+        p_user_id: bookingData.userId,
+        p_show_id: bookingData.showId,
+        p_seat_ids: bookingData.seats.map(s => s.seatId),
+        p_total_amount: bookingData.totalAmount,
+        p_customers: customers
+      })
 
-      if (seatsError) {
-        // Rollback booking if seat creation fails
-        await supabase.from('Booking').delete().eq('booking_id', booking.booking_id)
-        throw new Error(`Failed to create booking seats: ${seatsError.message}`)
+      if (error) {
+        const errorMessage = error.message || 'Unknown error'
+
+        if (errorMessage.includes('SEAT_LOCKED:')) {
+          throw new Error('Seats are currently being booked by another user. Please try again.')
+        } else if (errorMessage.includes('SEATS_UNAVAILABLE:')) {
+          const seats = errorMessage.split(':')[1]?.trim() || 'Unknown seats'
+          throw new Error(`The following seats are no longer available: ${seats}`)
+        } else if (errorMessage.includes('SEAT_NOT_FOUND:')) {
+          throw new Error('One or more selected seats do not exist for this show.')
+        } else if (errorMessage.includes('DUPLICATE_BOOKING:')) {
+          throw new Error('One or more seats are already booked.')
+        } else {
+          throw new Error(`Failed to create booking: ${errorMessage}`)
+        }
       }
 
-      // Mark seats as booked
-      const seatIds = bookingData.seats.map(s => s.seatId)
-      const { error: updateSeatsError } = await supabase
-        .from('Seat')
-        .update({ is_reserved: true })
-        .in('seat_id', seatIds)
+      const bookingId = data.bookingId
 
-      if (updateSeatsError) {
-        logger.warn('Failed to mark seats as reserved', { error: updateSeatsError.message, seatIds })
-      }
+      logger.info('Atomic booking created successfully', {
+        bookingId,
+        userId: bookingData.userId,
+        showId: bookingData.showId,
+        seatsBooked: data.seatsBooked
+      })
 
-      return await this.findById(booking.booking_id) as BookingResponse
+      return await this.findById(bookingId) as BookingResponse
 
     } catch (error) {
-      logger.error('Error creating booking', { error: (error as Error).message, bookingData })
+      logger.error('Error creating atomic booking', {
+        error: (error as Error).message,
+        userId: bookingData.userId,
+        showId: bookingData.showId,
+        seatIds: bookingData.seats.map(s => s.seatId)
+      })
+      throw error
+    }
+  }
+
+
+  async createWithTransaction(
+    client: PoolClient,
+    bookingData: CreateBookingData
+  ): Promise<{ bookingId: number; bookingRecord: any }> {
+    try {
+      const bookingResult = await client.query(
+        `INSERT INTO public."Booking" (user_id, show_id, status, total_amt)
+         VALUES ($1, $2, $3, $4)
+         RETURNING booking_id, user_id, show_id, status, total_amt, created_at, updated_at`,
+        [bookingData.userId, bookingData.showId, 'confirmed', bookingData.totalAmount]
+      )
+
+      const bookingRecord = bookingResult.rows[0]
+      const bookingId = bookingRecord.booking_id
+
+      for (const seat of bookingData.seats) {
+        await client.query(
+          `INSERT INTO public."Booking_seat"
+           (booking_id, seat_id, customer_name, customer_age, gender, customer_email, customer_phone)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            bookingId,
+            seat.seatId,
+            seat.customer.name,
+            seat.customer.age,
+            seat.customer.gender,
+            bookingData.contactDetails.email,
+            bookingData.contactDetails.phone
+          ]
+        )
+      }
+
+      return { bookingId, bookingRecord }
+    } catch (error) {
+      logger.error('Error in createWithTransaction', { error: (error as Error).message })
       throw error
     }
   }

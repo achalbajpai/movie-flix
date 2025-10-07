@@ -24,28 +24,23 @@ export class BookingService implements IBookingService {
 
   async createBooking(bookingData: CreateBookingData): Promise<BookingConfirmation> {
     try {
+      logger.info('Starting atomic booking creation', {
+        userId: bookingData.userId,
+        showId: bookingData.showId,
+        seatCount: bookingData.seats.length
+      })
+
       // Validate booking request
       const validation = await this.validateBookingRequest(bookingData)
       if (!validation.valid) {
         throw new Error(`Booking validation failed: ${validation.errors.join(', ')}`)
       }
 
-      // Check seat availability one more time
       const seatIds = bookingData.seats.map(s => s.seatId)
-      const seatAvailability = await this.seatRepository.checkSeatAvailability(bookingData.showId, seatIds)
-      if (!seatAvailability) {
-        throw new Error('Selected seats are no longer available')
-      }
-
-      // Calculate total amount
       const totalAmount = await this.seatRepository.calculateSeatPrices(bookingData.showId, seatIds)
       const bookingDataWithAmount = { ...bookingData, totalAmount }
 
-      // Create the booking
       const booking = await this.bookingRepository.create(bookingDataWithAmount)
-
-      // Mark seats as booked
-      await this.seatRepository.markSeatsAsBooked(seatIds, booking.booking_id)
 
       // Generate booking confirmation
       const confirmation: BookingConfirmation = {
@@ -70,12 +65,11 @@ export class BookingService implements IBookingService {
         paymentStatus: 'confirmed' // In real implementation, this would come from payment gateway
       }
 
-      // Send booking confirmation (async)
       this.sendBookingConfirmation(booking.booking_id).catch(error => {
         logger.warn('Failed to send booking confirmation', { error: error.message, bookingId: booking.booking_id })
       })
 
-      logger.info('Booking created successfully', {
+      logger.info('Atomic booking created successfully', {
         bookingId: booking.booking_id,
         userId: bookingData.userId,
         showId: bookingData.showId,
@@ -85,7 +79,17 @@ export class BookingService implements IBookingService {
       return confirmation
 
     } catch (error) {
-      logger.error('Error creating booking', { error: (error as Error).message, bookingData })
+      const errorMessage = (error as Error).message
+      logger.error('Error creating booking', {
+        error: errorMessage,
+        userId: bookingData.userId,
+        showId: bookingData.showId
+      })
+
+      if (errorMessage.includes('Seats are currently being booked')) {
+        throw new Error('These seats are being booked by another user. Please select different seats or try again.')
+      }
+
       throw error
     }
   }

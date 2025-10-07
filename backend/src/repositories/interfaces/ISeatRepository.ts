@@ -5,6 +5,7 @@ import {
   SeatReservationRequest,
   SeatStatus
 } from '@/models'
+import { PoolClient } from 'pg'
 
 export interface ISeatRepository {
   // Seat availability operations
@@ -13,10 +14,25 @@ export interface ISeatRepository {
   getSeatLayout(showId: number): Promise<SeatLayout>
   checkSeatAvailability(showId: number, seatIds: number[]): Promise<boolean>
 
+  // Transaction-aware seat locking and validation
+  lockAndValidateSeats(
+    client: PoolClient,
+    showId: number,
+    seatIds: number[]
+  ): Promise<{ valid: boolean; seats: any[]; errors: string[] }>
+
   // Seat status management
   updateSeatStatus(seatId: number, status: SeatStatus): Promise<SeatDetails>
   updateMultipleSeatStatus(seatIds: number[], status: SeatStatus): Promise<SeatDetails[]>
   markSeatsAsBooked(seatIds: number[], bookingId: number): Promise<void>
+
+  // Transaction-aware seat booking
+  markSeatsAsBookedWithTransaction(
+    client: PoolClient,
+    seatIds: number[],
+    bookingId: number
+  ): Promise<void>
+
   releaseSeats(seatIds: number[]): Promise<void>
 
   // Seat reservation operations (temporary holds)
@@ -34,6 +50,14 @@ export interface ISeatRepository {
 
   // Seat pricing
   calculateSeatPrices(showId: number, seatIds: number[]): Promise<number>
+
+  // Transaction-aware price calculation
+  calculateSeatPricesWithTransaction(
+    client: PoolClient,
+    showId: number,
+    seatIds: number[]
+  ): Promise<number>
+
   getSeatPrice(seatId: number): Promise<number>
 
   // Booking integration

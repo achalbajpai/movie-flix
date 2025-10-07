@@ -51,12 +51,12 @@ export class SeatService implements ISeatService {
     conflictReason: string[]
   }> {
     try {
-      // Clean up expired reservations first
-      await this.seatRepository.cleanupExpiredReservations()
 
       const seats = await this.seatRepository.findSeatsByIds(seatIds)
       const unavailableSeats: number[] = []
       const conflictReason: string[] = []
+
+      await this.seatRepository.cleanupExpiredReservations()
 
       // Check if all requested seats exist and belong to the schedule
       if (seats.length !== seatIds.length) {
@@ -70,10 +70,9 @@ export class SeatService implements ISeatService {
       const wrongScheduleSeats = seats.filter(s => s.show_id !== showId)
       if (wrongScheduleSeats.length > 0) {
         unavailableSeats.push(...wrongScheduleSeats.map(s => s.seat_id))
-        conflictReason.push('Some seats do not belong to this schedule')
+        conflictReason.push('Some seats do not belong to this show')
       }
 
-      // Check if seats are available
       const reservedSeats = seats.filter(s => s.is_reserved)
       if (reservedSeats.length > 0) {
         // Check if reservations are expired
