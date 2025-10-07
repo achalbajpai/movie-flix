@@ -10,7 +10,7 @@ const HeaderDemo = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
             <Bus className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-foreground">BusGo</span>
+            <span className="text-2xl font-bold text-foreground">MovieFlix</span>
           </div>
 
           <div className="flex items-center gap-3">
