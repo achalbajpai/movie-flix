@@ -1,5 +1,6 @@
 import { supabase } from '@/config/supabase'
 import { logger } from '@/config'
+import { PoolClient } from 'pg'
 import {
   ISeatRepository,
   SeatDetails,
@@ -701,6 +702,98 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
     } catch (error) {
       logger.error('Error getting popular seats', { error: (error as Error).message, showId })
+      throw error
+    }
+  }
+
+
+  async lockAndValidateSeats(
+    client: PoolClient,
+    showId: number,
+    seatIds: number[]
+  ): Promise<{ valid: boolean; seats: any[]; errors: string[] }> {
+    try {
+      const result = await client.query(
+        `SELECT seat_id, seat_no, is_reserved, reservation_expires_at, price
+         FROM public."Seat"
+         WHERE show_id = $1 AND seat_id = ANY($2::bigint[])
+         FOR UPDATE NOWAIT`,
+        [showId, seatIds]
+      )
+
+      const seats = result.rows
+      const errors: string[] = []
+
+      if (seats.length !== seatIds.length) {
+        errors.push('Some seats do not exist for this show')
+      }
+
+      const now = new Date()
+      for (const seat of seats) {
+        if (seat.is_reserved) {
+          if (!seat.reservation_expires_at || new Date(seat.reservation_expires_at) > now) {
+            errors.push(`Seat ${seat.seat_no} is already booked`)
+          }
+        }
+      }
+
+      return {
+        valid: errors.length === 0,
+        seats,
+        errors
+      }
+    } catch (error: any) {
+      if (error.code === '55P03') { 
+        return {
+          valid: false,
+          seats: [],
+          errors: ['Seats are currently being booked by another user']
+        }
+      }
+      logger.error('Error locking seats', { error: error.message, showId, seatIds })
+      throw error
+    }
+  }
+
+
+  async markSeatsAsBookedWithTransaction(
+    client: PoolClient,
+    seatIds: number[],
+    bookingId: number
+  ): Promise<void> {
+    try {
+      await client.query(
+        `UPDATE public."Seat"
+         SET is_reserved = true,
+             booking_id = $1,
+             reservation_expires_at = NULL,
+             version = version + 1,
+             updated_at = NOW()
+         WHERE seat_id = ANY($2::bigint[])`,
+        [bookingId, seatIds]
+      )
+    } catch (error) {
+      logger.error('Error marking seats as booked', { error: (error as Error).message, seatIds, bookingId })
+      throw error
+    }
+  }
+
+  async calculateSeatPricesWithTransaction(
+    client: PoolClient,
+    showId: number,
+    seatIds: number[]
+  ): Promise<number> {
+    try {
+      const result = await client.query(
+        `SELECT SUM(price) as total
+         FROM public."Seat"
+         WHERE show_id = $1 AND seat_id = ANY($2::bigint[])`,
+        [showId, seatIds]
+      )
+
+      return parseFloat(result.rows[0]?.total || '0')
+    } catch (error) {
+      logger.error('Error calculating seat prices', { error: (error as Error).message, showId, seatIds })
       throw error
     }
   }

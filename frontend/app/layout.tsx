@@ -13,8 +13,8 @@ const outfit = Outfit({
 })
 
 export const metadata: Metadata = {
-  title: 'BusGo - Your go to bus booking platform now on web',
-  description: 'Your go to bus booking platform now on web',
+  title: 'MovieFlix - Your go to movie booking platform now on web',
+  description: 'Your go to movie booking platform now on web',
 }
 
 export default function RootLayout({

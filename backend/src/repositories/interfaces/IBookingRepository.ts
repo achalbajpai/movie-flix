@@ -7,10 +7,18 @@ import {
   CancelBookingRequest,
   BookingStatus
 } from '@/models'
+import { PoolClient } from 'pg'
 
 export interface IBookingRepository {
   // Core booking operations
   create(bookingData: CreateBookingData): Promise<BookingResponse>
+
+  // Transaction-aware booking creation with row-level locking
+  createWithTransaction(
+    client: PoolClient,
+    bookingData: CreateBookingData
+  ): Promise<{ bookingId: number; bookingRecord: any }>
+
   findById(bookingId: number): Promise<BookingResponse | null>
   findByUserId(userId: string, query?: Partial<BookingQuery>): Promise<BookingHistory>
   updateStatus(bookingId: number, status: BookingStatus): Promise<BookingResponse>
