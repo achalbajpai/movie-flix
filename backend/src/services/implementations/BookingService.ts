@@ -238,11 +238,32 @@ export class BookingService implements IBookingService {
       // Check if schedule exists and is valid
       // This would involve checking schedule repository in a real implementation
 
-      // Check seat availability
+      // Check seat availability with detailed status
       const seatIds = bookingData.seats.map(s => s.seatId)
-      const seatsAvailable = await this.seatRepository.checkSeatAvailability(bookingData.showId, seatIds)
-      if (!seatsAvailable) {
-        errors.push('One or more selected seats are not available')
+      const availabilityCheck = await this.seatRepository.checkDetailedSeatAvailability(bookingData.showId, seatIds)
+
+      if (!availabilityCheck.available) {
+        // Group seats by reason
+        const bookedSeats = availabilityCheck.unavailableSeats.filter(s => s.reason === 'booked')
+        const reservedSeats = availabilityCheck.unavailableSeats.filter(s => s.reason === 'reserved')
+        const notFoundSeats = availabilityCheck.unavailableSeats.filter(s => s.reason === 'not_found')
+
+        if (bookedSeats.length > 0) {
+          const seatNos = bookedSeats.map(s => s.seatNo).join(', ')
+          errors.push(`The following seats are already booked: ${seatNos}. Please select different seats.`)
+        }
+
+        if (reservedSeats.length > 0) {
+          const seatNos = reservedSeats.map(s => s.seatNo).join(', ')
+          const expiresAt = reservedSeats[0].reservationExpiresAt
+          const minutesLeft = expiresAt ? Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 60000) : 0
+          errors.push(`The following seats are temporarily held by another user: ${seatNos}. These seats will be released in approximately ${minutesLeft} minute(s). Please wait or select different seats.`)
+        }
+
+        if (notFoundSeats.length > 0) {
+          const seatNos = notFoundSeats.map(s => s.seatNo).join(', ')
+          errors.push(`The following seats do not exist: ${seatNos}`)
+        }
       }
 
       // Validate passenger count matches seat count

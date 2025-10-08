@@ -110,12 +110,23 @@ export const createSeatController = (seatService: ISeatService) => {
   })
 
   const createSeatReservation = asyncHandler(async (req: Request, res: Response) => {
-    const validationResult = validate.seatReservation(req.body)
-    if (!validationResult.success || !validationResult.data) {
-      throw new Error('Invalid reservation data')
-    }
-    const reservation = await seatService.createSeatReservation(validationResult.data as any)
+    console.log('=== RESERVATION REQUEST ===')
+    console.log('Body:', JSON.stringify(req.body, null, 2))
 
+    const validationResult = validate.seatReservation(req.body)
+
+    if (!validationResult.success || !validationResult.data) {
+      console.log('VALIDATION FAILED:', JSON.stringify(validationResult.errors, null, 2))
+
+      return res.status(400).json(ResponseBuilder.error({
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed: ' + JSON.stringify(validationResult.errors),
+        details: validationResult.errors
+      }))
+    }
+
+    console.log('Validation passed, creating reservation...')
+    const reservation = await seatService.createSeatReservation(validationResult.data as any)
     res.status(201).json(ResponseBuilder.success(reservation, 'Seat reservation created successfully'))
   })
 
