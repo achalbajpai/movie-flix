@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { ISeatService } from '@/services/interfaces'
-import { ResponseBuilder } from '@/utils'
+import { ResponseBuilder, handleValidationError } from '@/utils'
 import { asyncHandler } from '@/middleware'
 import { validate } from '@/validation'
 import { logger } from '@/config'
@@ -36,18 +36,7 @@ export const createSeatController = (seatService: ISeatService) => {
 
   const getSeatLayout = asyncHandler(async (req: Request, res: Response) => {
     const validationResult = validate.showId(req.params)
-    if (!validationResult.success || !validationResult.data) {
-      logger.error('Show ID validation failed for getSeatLayout', {
-        errors: validationResult.errors,
-        params: req.params
-      })
-
-      return res.status(400).json(ResponseBuilder.error({
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid show ID parameter',
-        details: validationResult.errors
-      }))
-    }
+    if (handleValidationError(res, validationResult, 'Show ID', req.params)) return
     const { showId } = validationResult.data as any
 
     const layout = await seatService.getSeatLayout(showId)
@@ -110,22 +99,9 @@ export const createSeatController = (seatService: ISeatService) => {
   })
 
   const createSeatReservation = asyncHandler(async (req: Request, res: Response) => {
-    console.log('=== RESERVATION REQUEST ===')
-    console.log('Body:', JSON.stringify(req.body, null, 2))
-
     const validationResult = validate.seatReservation(req.body)
+    if (handleValidationError(res, validationResult, 'Seat reservation', req.body)) return
 
-    if (!validationResult.success || !validationResult.data) {
-      console.log('VALIDATION FAILED:', JSON.stringify(validationResult.errors, null, 2))
-
-      return res.status(400).json(ResponseBuilder.error({
-        code: 'VALIDATION_ERROR',
-        message: 'Validation failed: ' + JSON.stringify(validationResult.errors),
-        details: validationResult.errors
-      }))
-    }
-
-    console.log('Validation passed, creating reservation...')
     const reservation = await seatService.createSeatReservation(validationResult.data as any)
     res.status(201).json(ResponseBuilder.success(reservation, 'Seat reservation created successfully'))
   })

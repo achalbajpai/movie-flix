@@ -25,6 +25,14 @@ const environmentSchema = z.object({
 
   // CORS
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000,http://localhost:3001'),
+
+  // Business Configuration (Optional overrides)
+  SEAT_RESERVATION_TIMEOUT_MINUTES: z.string().transform(Number).optional(),
+  DEFAULT_PAGE_SIZE: z.string().transform(Number).optional(),
+  MAX_PAGE_SIZE: z.string().transform(Number).optional(),
+  REFUND_POLICY_HOURS: z.string().transform(Number).optional(),
+  MAX_SEATS_PER_BOOKING: z.string().transform(Number).optional(),
+  MIN_ADVANCE_BOOKING_MINUTES: z.string().transform(Number).optional(),
 })
 
 const parseEnvironment = () => {

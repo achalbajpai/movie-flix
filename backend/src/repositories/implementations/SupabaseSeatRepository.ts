@@ -1,5 +1,5 @@
 import { supabase } from '@/config/supabase'
-import { logger } from '@/config'
+import { logger, businessConfig, calculateSeatReservationExpiry } from '@/config'
 import { PoolClient } from 'pg'
 import {
   ISeatRepository,
@@ -355,7 +355,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
 
       // Create reservation record
       const reservationId = `RSV_${Date.now()}_${reservationData.userId}`
-      const expiresAt = reservationData.expiresAt || new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 minutes default
+      const expiresAt = reservationData.expiresAt || calculateSeatReservationExpiry().toISOString()
 
       const { data: reservation, error: reservationError } = await supabase
         .from('seatreservation')

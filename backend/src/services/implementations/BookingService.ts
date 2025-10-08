@@ -1,4 +1,4 @@
-import { logger } from '@/config'
+import { logger, businessConfig, canCancelBooking as canCancelByTime, calculateRefundAmount as calculateRefund } from '@/config'
 import { TicketService, TicketData } from '../TicketService'
 import {
   IBookingService,
@@ -329,12 +329,8 @@ export class BookingService implements IBookingService {
       // Check if booking status allows cancellation
       if (booking.status !== 'confirmed' && booking.status !== 'pending') return false
 
-      // Check if show time is at least 2 hours away
       const showTime = new Date(booking.show.show_time)
-      const now = new Date()
-      const hoursUntilShow = (showTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-
-      return hoursUntilShow >= 2
+      return canCancelByTime(showTime)
 
     } catch (error) {
       logger.error('Error checking if booking can be cancelled', { error: (error as Error).message, bookingId, userId })
@@ -348,17 +344,7 @@ export class BookingService implements IBookingService {
       if (!booking) return 0
 
       const showTime = new Date(booking.show.show_time)
-      const now = new Date()
-      const hoursUntilShow = (showTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-
-      // Simple refund policy - full refund if >24 hours, 50% if >2 hours, 0% otherwise
-      if (hoursUntilShow >= 24) {
-        return booking.total_amt
-      } else if (hoursUntilShow >= 2) {
-        return booking.total_amt * 0.5
-      } else {
-        return 0
-      }
+      return calculateRefund(booking.total_amt, showTime)
 
     } catch (error) {
       logger.error('Error calculating refund amount', { error: (error as Error).message, bookingId })

@@ -98,6 +98,7 @@ export interface BookingResponse {
   id: string
   booking_id?: number
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  fees: number
   totalAmount: number
   journeyDate?: string // Legacy field for compatibility
   showDate?: string

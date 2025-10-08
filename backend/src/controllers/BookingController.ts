@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { IBookingService } from '@/services/interfaces'
-import { ResponseBuilder } from '@/utils'
+import { ResponseBuilder, handleValidationError } from '@/utils'
 import { asyncHandler } from '@/middleware'
 import { validate } from '@/validation'
 import { logger } from '@/config'
@@ -8,22 +8,7 @@ import { logger } from '@/config'
 export const createBookingController = (bookingService: IBookingService) => {
   const createBooking = asyncHandler(async (req: Request, res: Response) => {
     const validationResult = validate.createBooking(req.body)
-    if (!validationResult.success || !validationResult.data) {
-      const errorDetails = validationResult.errors?.map(err =>
-        `${err.field}: ${err.message}`
-      ).join(', ') || 'Unknown validation error'
-
-      logger.error('Booking validation failed', {
-        errors: validationResult.errors,
-        requestBody: req.body
-      })
-
-      return res.status(400).json(ResponseBuilder.error({
-        code: 'VALIDATION_ERROR',
-        message: 'Booking validation failed',
-        details: validationResult.errors
-      }))
-    }
+    if (handleValidationError(res, validationResult, 'Booking', req.body)) return
 
     // Transform CreateBookingRequest to CreateBookingData format
     const requestData = validationResult.data as any
@@ -45,18 +30,7 @@ export const createBookingController = (bookingService: IBookingService) => {
 
   const getBookingById = asyncHandler(async (req: Request, res: Response) => {
     const validationResult = validate.bookingId(req.params)
-    if (!validationResult.success || !validationResult.data) {
-      logger.error('Booking ID validation failed', {
-        errors: validationResult.errors,
-        params: req.params
-      })
-
-      return res.status(400).json(ResponseBuilder.error({
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid booking ID parameter',
-        details: validationResult.errors
-      }))
-    }
+    if (handleValidationError(res, validationResult, 'Booking ID', req.params)) return
     const { id } = validationResult.data as any
 
     const booking = await bookingService.getBookingById(id)
@@ -115,31 +89,11 @@ export const createBookingController = (bookingService: IBookingService) => {
 
   const cancelBooking = asyncHandler(async (req: Request, res: Response) => {
     const validationResult = validate.bookingId(req.params)
-    if (!validationResult.success || !validationResult.data) {
-      logger.error('Booking ID validation failed', {
-        errors: validationResult.errors,
-        params: req.params
-      })
-      return res.status(400).json(ResponseBuilder.error({
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid booking ID parameter',
-        details: validationResult.errors
-      }))
-    }
+    if (handleValidationError(res, validationResult, 'Booking ID', req.params)) return
     const { id } = validationResult.data as any
 
     const cancelValidationResult = validate.cancelBooking(req.body)
-    if (!cancelValidationResult.success || !cancelValidationResult.data) {
-      logger.error('Cancellation data validation failed', {
-        errors: cancelValidationResult.errors,
-        body: req.body
-      })
-      return res.status(400).json(ResponseBuilder.error({
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid cancellation data',
-        details: cancelValidationResult.errors
-      }))
-    }
+    if (handleValidationError(res, cancelValidationResult, 'Cancellation data', req.body)) return
     const cancelData = cancelValidationResult.data as any
 
     const userId = cancelData.userId || req.body.userId || req.headers['user-id'] as string

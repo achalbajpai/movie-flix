@@ -33,6 +33,7 @@ export const api = {
       const transformedBooking: BookingResponse = {
         id: booking.booking_id?.toString() || '',
         status: booking.status || 'pending',
+        fees: booking.fees || 20,
         totalAmount: booking.total_amt || 0,
         showDate: booking.show?.show_time || '',
         createdAt: booking.created_at || '',
@@ -72,6 +73,7 @@ export const api = {
       const transformedBookings: BookingResponse[] = (response.data.data || []).map((booking: any) => ({
         id: booking.booking_id?.toString() || '',
         status: booking.status || 'pending',
+        fees: booking.fees || 20,
         totalAmount: booking.total_amt || 0,
         showDate: booking.show?.show_time || '',
         createdAt: booking.created_at || '',
