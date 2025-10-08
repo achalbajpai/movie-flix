@@ -13,6 +13,15 @@ export interface ISeatRepository {
   findAvailableSeats(showId: number): Promise<SeatDetails[]>
   getSeatLayout(showId: number): Promise<SeatLayout>
   checkSeatAvailability(showId: number, seatIds: number[]): Promise<boolean>
+  checkDetailedSeatAvailability(showId: number, seatIds: number[]): Promise<{
+    available: boolean
+    unavailableSeats: Array<{
+      seatId: number
+      seatNo: string
+      reason: 'booked' | 'reserved' | 'not_found'
+      reservationExpiresAt?: string
+    }>
+  }>
 
   // Transaction-aware seat locking and validation
   lockAndValidateSeats(

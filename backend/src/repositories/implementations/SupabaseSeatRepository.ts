@@ -124,7 +124,7 @@ export class SupabaseSeatRepository implements ISeatRepository {
     try {
       const { data: seats, error } = await supabase
         .from('Seat')
-        .select('seat_id, is_reserved, reservation_expires_at')
+        .select('seat_id, is_reserved, reservation_expires_at, booking_id')
         .eq('show_id', showId)
         .in('seat_id', seatIds)
 
@@ -137,17 +137,104 @@ export class SupabaseSeatRepository implements ISeatRepository {
       // Check if all seats are available or have expired reservations
       const now = new Date()
       return seats.every(seat => {
+        // Seat is available
         if (!seat.is_reserved) return true
+
+        // Seat is permanently booked (has booking_id)
+        if (seat.booking_id) return false
+
+        // Seat has temporary reservation - check if expired
         if (seat.reservation_expires_at && new Date(seat.reservation_expires_at) < now) {
           // Reservation has expired, clean it up
           this.updateSeatStatus(seat.seat_id, SeatStatus.AVAILABLE)
           return true
         }
+
+        // Seat is temporarily reserved and not expired
         return false
       })
 
     } catch (error) {
       logger.error('Error checking seat availability', { error: (error as Error).message, showId, seatIds })
+      throw error
+    }
+  }
+
+  async checkDetailedSeatAvailability(showId: number, seatIds: number[]): Promise<{
+    available: boolean
+    unavailableSeats: Array<{
+      seatId: number
+      seatNo: string
+      reason: 'booked' | 'reserved' | 'not_found'
+      reservationExpiresAt?: string
+    }>
+  }> {
+    try {
+      const { data: seats, error } = await supabase
+        .from('Seat')
+        .select('seat_id, seat_no, is_reserved, reservation_expires_at, booking_id')
+        .eq('show_id', showId)
+        .in('seat_id', seatIds)
+
+      if (error) throw new Error(`Failed to check seat availability: ${error.message}`)
+
+      const unavailableSeats: Array<{
+        seatId: number
+        seatNo: string
+        reason: 'booked' | 'reserved' | 'not_found'
+        reservationExpiresAt?: string
+      }> = []
+
+      // Check for missing seats
+      const foundSeatIds = seats?.map(s => s.seat_id) || []
+      const missingSeatIds = seatIds.filter(id => !foundSeatIds.includes(id))
+      missingSeatIds.forEach(seatId => {
+        unavailableSeats.push({
+          seatId,
+          seatNo: `Seat ${seatId}`,
+          reason: 'not_found'
+        })
+      })
+
+      // Check seat status
+      const now = new Date()
+      seats?.forEach(seat => {
+        if (!seat.is_reserved) {
+          // Available
+          return
+        }
+
+        if (seat.booking_id) {
+          // Permanently booked
+          unavailableSeats.push({
+            seatId: seat.seat_id,
+            seatNo: seat.seat_no,
+            reason: 'booked'
+          })
+        } else if (seat.reservation_expires_at) {
+          const expiresAt = new Date(seat.reservation_expires_at)
+          if (expiresAt < now) {
+            // Expired reservation - clean it up
+            this.updateSeatStatus(seat.seat_id, SeatStatus.AVAILABLE)
+          } else {
+            // Active temporary reservation
+            unavailableSeats.push({
+              seatId: seat.seat_id,
+              seatNo: seat.seat_no,
+              reason: 'reserved',
+              reservationExpiresAt: seat.reservation_expires_at
+            })
+          }
+        }
+      })
+
+      return {
+        available: unavailableSeats.length === 0,
+        unavailableSeats
+      }
+
+    } catch (error) {
+      logger.error('Error checking detailed seat availability', { error: (error as Error).message, showId, seatIds })
       throw error
     }
   }

@@ -219,6 +219,7 @@ export default function BookingPage() {
                   <CardContent>
                     <SeatMap
                       showId={show.show_id}
+                      userId={user?.id || ''}
                       onSelectionChange={handleSeatSelectionChange}
                     />
                   </CardContent>
