@@ -20,12 +20,14 @@ import {
   ShowService,
   BookingService,
   SeatService,
+  EncryptionService,
   IMovieService,
   ITheaterService,
   IScreenService,
   IShowService,
   IBookingService,
-  ISeatService
+  ISeatService,
+  IEncryptionService
 } from '@/services'
 
 import {
@@ -56,6 +58,7 @@ export interface Container {
   showService: IShowService
   bookingService: IBookingService
   seatService: ISeatService
+  encryptionService: IEncryptionService
 
   // Controllers
   movieController: MovieController
@@ -78,11 +81,12 @@ export const createContainer = (): Container => {
   const seatRepository = new SupabaseSeatRepository()
 
   // Service instances (Business Logic Layer) - Depend on repositories
+  const encryptionService = new EncryptionService()
   const movieService = new MovieService(movieRepository)
   const theaterService = new TheaterService(theaterRepository)
   const screenService = new ScreenService(screenRepository)
   const showService = new ShowService(showRepository)
-  const bookingService = new BookingService(bookingRepository, seatRepository)
+  const bookingService = new BookingService(bookingRepository, seatRepository, encryptionService)
   const seatService = new SeatService(seatRepository)
 
   // Controller instances (Presentation Layer) - Depend on services
@@ -111,6 +115,7 @@ export const createContainer = (): Container => {
     showService,
     bookingService,
     seatService,
+    encryptionService,
 
     // Controllers
     movieController,

@@ -26,6 +26,12 @@ const environmentSchema = z.object({
   // CORS
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000,http://localhost:3001'),
 
+  // AWS Configuration (for encryption)
+  // Note: AWS credentials are not needed when running on EC2 with an IAM role
+  AWS_REGION: z.string().optional(),
+  PII_ENCRYPTION_KEY_ID: z.string().optional(),
+  ENCRYPTED_DATA_KEY: z.string().optional(),
+
   // Business Configuration (Optional overrides)
   SEAT_RESERVATION_TIMEOUT_MINUTES: z.string().transform(Number).optional(),
   DEFAULT_PAGE_SIZE: z.string().transform(Number).optional(),

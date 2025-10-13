@@ -4,6 +4,7 @@ import {
   IBookingService,
   IBookingRepository,
   ISeatRepository,
+  IEncryptionService,
   BookingResponse,
   BookingQuery,
   CreateBookingData,
@@ -19,8 +20,29 @@ export class BookingService implements IBookingService {
 
   constructor(
     private bookingRepository: IBookingRepository,
-    private seatRepository: ISeatRepository
+    private seatRepository: ISeatRepository,
+    private encryptionService: IEncryptionService
   ) {}
+
+  /**
+   * Helper method to decrypt email in a single booking
+   */
+  private decryptBookingEmail(booking: BookingResponse): void {
+    if (booking && booking.contactDetails?.email) {
+      booking.contactDetails.email = this.encryptionService.decrypt(booking.contactDetails.email)
+    }
+  }
+
+  /**
+   * Helper method to decrypt emails in multiple bookings
+   */
+  private decryptBookingEmails(bookings: BookingResponse[]): void {
+    bookings.forEach(booking => {
+      if (booking.contactDetails?.email) {
+        booking.contactDetails.email = this.encryptionService.decrypt(booking.contactDetails.email)
+      }
+    })
+  }
 
   async createBooking(bookingData: CreateBookingData): Promise<BookingConfirmation> {
     try {
@@ -38,7 +60,17 @@ export class BookingService implements IBookingService {
 
       const seatIds = bookingData.seats.map(s => s.seatId)
       const totalAmount = await this.seatRepository.calculateSeatPrices(bookingData.showId, seatIds)
-      const bookingDataWithAmount = { ...bookingData, totalAmount }
+
+      // Encrypt the contact email before sending to the repository
+      const encryptedEmail = this.encryptionService.encrypt(bookingData.contactDetails.email)
+      const bookingDataWithAmount = {
+        ...bookingData,
+        totalAmount,
+        contactDetails: {
+          ...bookingData.contactDetails,
+          email: encryptedEmail
+        }
+      }
 
       const booking = await this.bookingRepository.create(bookingDataWithAmount)
 
@@ -96,7 +128,14 @@ export class BookingService implements IBookingService {
 
   async getBookingById(bookingId: number): Promise<BookingResponse | null> {
     try {
-      return await this.bookingRepository.findById(bookingId)
+      const booking = await this.bookingRepository.findById(bookingId)
+
+      // Decrypt the email after fetching from the database
+      if (booking) {
+        this.decryptBookingEmail(booking)
+      }
+
+      return booking
     } catch (error) {
       logger.error('Error getting booking by ID', { error: (error as Error).message, bookingId })
       throw error
@@ -105,7 +144,14 @@ export class BookingService implements IBookingService {
 
   async getUserBookings(userId: string, query?: Partial<BookingQuery>): Promise<BookingHistory> {
     try {
-      return await this.bookingRepository.findByUserId(userId, query)
+      const bookingHistory = await this.bookingRepository.findByUserId(userId, query)
+
+      // Decrypt the email for each booking
+      if (bookingHistory.bookings) {
+        this.decryptBookingEmails(bookingHistory.bookings)
+      }
+
+      return bookingHistory
     } catch (error) {
       logger.error('Error getting user bookings', { error: (error as Error).message, userId, query })
       throw error
@@ -122,6 +168,9 @@ export class BookingService implements IBookingService {
         const seatIds = seats.map((seat: any) => seat.seat_id)
         await this.seatRepository.releaseSeats(seatIds)
       }
+
+      // Decrypt the email before returning
+      this.decryptBookingEmail(booking)
 
       logger.info('Booking status updated', { bookingId, status })
       return booking
@@ -149,6 +198,9 @@ export class BookingService implements IBookingService {
       // Cancel the booking
       const booking = await this.bookingRepository.cancel(bookingId, cancelData || {})
 
+      // Decrypt the email before returning
+      this.decryptBookingEmail(booking)
+
       // Send cancellation notification (async)
       this.sendCancellationNotification(bookingId).catch(error => {
         logger.warn('Failed to send cancellation notification', { error: error.message, bookingId })
@@ -165,7 +217,14 @@ export class BookingService implements IBookingService {
 
   async getAllBookings(query?: BookingQuery): Promise<BookingHistory> {
     try {
-      return await this.bookingRepository.findAll(query)
+      const bookingHistory = await this.bookingRepository.findAll(query)
+
+      // Decrypt the email for each booking
+      if (bookingHistory.bookings) {
+        this.decryptBookingEmails(bookingHistory.bookings)
+      }
+
+      return bookingHistory
     } catch (error) {
       logger.error('Error getting all bookings', { error: (error as Error).message, query })
       throw error
@@ -174,7 +233,9 @@ export class BookingService implements IBookingService {
 
   async getBookingsByShow(showId: number): Promise<BookingResponse[]> {
     try {
-      return await this.bookingRepository.findByShowId(showId)
+      const bookings = await this.bookingRepository.findByShowId(showId)
+      this.decryptBookingEmails(bookings)
+      return bookings
     } catch (error) {
       logger.error('Error getting bookings by show', { error: (error as Error).message, showId })
       throw error
@@ -183,7 +244,9 @@ export class BookingService implements IBookingService {
 
   async getBookingsByDateRange(fromDate: string, toDate: string): Promise<BookingResponse[]> {
     try {
-      return await this.bookingRepository.findByDateRange(fromDate, toDate)
+      const bookings = await this.bookingRepository.findByDateRange(fromDate, toDate)
+      this.decryptBookingEmails(bookings)
+      return bookings
     } catch (error) {
       logger.error('Error getting bookings by date range', { error: (error as Error).message, fromDate, toDate })
       throw error
@@ -192,7 +255,9 @@ export class BookingService implements IBookingService {
 
   async getBookingsByStatus(status: BookingStatus): Promise<BookingResponse[]> {
     try {
-      return await this.bookingRepository.findByStatus(status)
+      const bookings = await this.bookingRepository.findByStatus(status)
+      this.decryptBookingEmails(bookings)
+      return bookings
     } catch (error) {
       logger.error('Error getting bookings by status', { error: (error as Error).message, status })
       throw error
@@ -201,7 +266,9 @@ export class BookingService implements IBookingService {
 
   async getUpcomingBookings(userId: string): Promise<BookingResponse[]> {
     try {
-      return await this.bookingRepository.findUpcomingBookings(userId)
+      const bookings = await this.bookingRepository.findUpcomingBookings(userId)
+      this.decryptBookingEmails(bookings)
+      return bookings
     } catch (error) {
       logger.error('Error getting upcoming bookings', { error: (error as Error).message, userId })
       throw error
@@ -210,7 +277,9 @@ export class BookingService implements IBookingService {
 
   async getPastBookings(userId: string): Promise<BookingResponse[]> {
     try {
-      return await this.bookingRepository.findPastBookings(userId)
+      const bookings = await this.bookingRepository.findPastBookings(userId)
+      this.decryptBookingEmails(bookings)
+      return bookings
     } catch (error) {
       logger.error('Error getting past bookings', { error: (error as Error).message, userId })
       throw error
@@ -219,7 +288,9 @@ export class BookingService implements IBookingService {
 
   async getCancellableBookings(userId: string): Promise<BookingResponse[]> {
     try {
-      return await this.bookingRepository.findCancellableBookings(userId)
+      const bookings = await this.bookingRepository.findCancellableBookings(userId)
+      this.decryptBookingEmails(bookings)
+      return bookings
     } catch (error) {
       logger.error('Error getting cancellable bookings', { error: (error as Error).message, userId })
       throw error
@@ -382,7 +453,11 @@ export class BookingService implements IBookingService {
   async getBookingByReference(reference: string): Promise<BookingResponse | null> {
     try {
       const bookings = await this.bookingRepository.getBookingsByReference(reference)
-      return bookings.length > 0 ? bookings[0] : null
+      if (bookings.length > 0) {
+        this.decryptBookingEmail(bookings[0])
+        return bookings[0]
+      }
+      return null
     } catch (error) {
       logger.error('Error getting booking by reference', { error: (error as Error).message, reference })
       throw error
