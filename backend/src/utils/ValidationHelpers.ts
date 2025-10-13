@@ -1,5 +1,7 @@
 import { z } from 'zod'
-import { ApiErrorBuilder } from './ApiResponse'
+import { Response } from 'express'
+import { ApiErrorBuilder, ResponseBuilder } from './ApiResponse'
+import { logger } from '@/config'
 
 export class ValidationError extends Error {
   constructor(
@@ -75,4 +77,32 @@ export const createValidationMiddleware = <T>(schema: z.ZodSchema<T>) => {
       throw error
     }
   }
+}
+
+export const handleValidationError = (
+  res: Response,
+  validationResult: { success: boolean; errors?: any[]; data?: any },
+  context: string,
+  requestData?: any
+): boolean => {
+  if (!validationResult.success || !validationResult.data) {
+    const errorDetails = validationResult.errors?.map(err =>
+      `${err.field}: ${err.message}`
+    ).join(', ') || 'Unknown validation error'
+
+    logger.error(`${context} validation failed`, {
+      errors: validationResult.errors,
+      requestData
+    })
+
+    res.status(400).json(ResponseBuilder.error({
+      code: 'VALIDATION_ERROR',
+      message: `${context} validation failed`,
+      details: validationResult.errors
+    }))
+
+    return true 
+  }
+
+  return false 
 }

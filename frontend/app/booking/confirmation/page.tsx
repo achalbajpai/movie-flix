@@ -261,14 +261,17 @@ export default function BookingConfirmationPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Taxes & Fees</span>
-                  <span>₹0</span>
+                   <span className="flex items-center">
+                    <IndianRupee className="h-4 w-4" />
+                    {booking.fees}
+                  </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-semibold">
                   <span>Total Amount</span>
                   <span className="flex items-center">
                     <IndianRupee className="h-4 w-4" />
-                    {booking.totalAmount}
+                    {booking.totalAmount + (booking.fees || 0)}
                   </span>
                 </div>
               </div>
